@@ -35,6 +35,7 @@ std::pair<long long, long long> find_values(std::string a, std::string b,
     }
     
     std::vector<std::vector<long long>> state(b.size() + 1, std::vector<long long>(s + 1));
+    std::vector<std::vector<int>> predecessor_state(b.size() + 1, std::vector<int>(s + 1, 10));
     std::vector<std::vector<int>> predecessor_b(b.size() + 1, std::vector<int>(s + 1, 10));
     std::vector<std::vector<int>> predecessor_a(a.size() + 1, std::vector<int>(s + 1, -1));
     std::vector<std::vector<long long>> state_within_b(b.size() + 1, std::vector<long long>(s + 1));
@@ -54,6 +55,7 @@ std::pair<long long, long long> find_values(std::string a, std::string b,
             break;
         }
         state[0][digit] = 1;
+        predecessor_state[0][digit] = digit;
         int b_digit = std::stoi(b.substr(b.size() - 1, 1));
         int a_digit = std::stoi(a.substr(a.size() - 1, 1));
 
@@ -80,6 +82,8 @@ std::pair<long long, long long> find_values(std::string a, std::string b,
                 int new_sum = sum + digit;
                 if (new_sum <= s) {
                     state[new_pos][new_sum] += state[pos][sum];
+                    predecessor_state[new_pos][new_sum] = std::min(predecessor_state[new_pos][new_sum], digit);
+
                     int b_digit = std::stoi(b.substr(b_digit_pos, 1));
                     if (pos < a.size() - 1) {
                         int a_digit = std::stoi(a.substr(a_digit_pos, 1));
@@ -122,10 +126,15 @@ std::pair<long long, long long> find_values(std::string a, std::string b,
     }
     else {
         std::string digits;
-        for (int pos = 0; pos < state_within_b.size() - 1; pos++) {
-            int digit_pos = b.size() - 1 - pos;
-            if (state_within_b[pos][s] - state_within_a[pos][s] > 0) {
-                digits += std::to_string(predecessor_b[pos][s]);
+        for (int pos = 0; pos < state.size() - 1; pos++) {
+            if (state[pos][s] > 0) {
+                // solution is extracted starting at pos.
+                int backtrack_s = s;
+                for (int digit_pos = pos; digit_pos >= 0; digit_pos--) {
+                    int digit = predecessor_state[digit_pos][backtrack_s];
+                    digits += std::to_string(digit);
+                    backtrack_s -= digit;
+                }
                 result.second = std::stoi(digits);
                 break;
             }

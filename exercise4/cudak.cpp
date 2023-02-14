@@ -29,13 +29,42 @@ std::pair<long long, long long> find_values(std::string a, std::string b,
 {
   
     auto max_pos = b.size();
-    std::pair<long long, long long> result;
+    auto delta = b.size() - a.size();
+    for (int i = 0; i < delta; i++) {
+        a = "0" + a;
+    }
     
-    std::vector<std::vector<long long>> state(20, std::vector<long long>(s + 1));
+    std::vector<std::vector<long long>> state(b.size() + 1, std::vector<long long>(s + 1));
+    std::vector<std::vector<int>> predecessor_b(b.size() + 1, std::vector<int>(s + 1, 10));
+    std::vector<std::vector<int>> predecessor_a(a.size() + 1, std::vector<int>(s + 1, -1));
+    std::vector<std::vector<long long>> state_within_b(b.size() + 1, std::vector<long long>(s + 1));
+    std::vector<std::vector<long long>> state_within_a(b.size() + 1, std::vector<long long>(s + 1));
     // need to expand with islower/ishigher
     // fill in pos 0.
-    for (int sum = 0; sum <= 9; sum++) {
-        state[0][sum] = 1;
+    int remove_a = 0;
+    int a_sum = 0;
+    for (int i = 0; i < a.size(); i++) {
+        a_sum += std::stoi(a.substr(i, 1));
+    }
+    if (a_sum == s) {
+        remove_a = 1;
+    }
+    for (int digit = 0; digit <= 9; digit++) {
+        if (digit > s) {
+            break;
+        }
+        state[0][digit] = 1;
+        int b_digit = std::stoi(b.substr(b.size() - 1, 1));
+        int a_digit = std::stoi(a.substr(a.size() - 1, 1));
+
+        if (digit <= a_digit) {
+            state_within_a[0][digit] = 1;
+            predecessor_a[0][digit] = digit;
+        }
+        if (digit <= b_digit) {
+            state_within_b[0][digit] = 1;
+            predecessor_b[0][digit] = digit;
+        }
     }
 
     // start by assuming only 99999 numbers can be used.
@@ -44,14 +73,73 @@ std::pair<long long, long long> find_values(std::string a, std::string b,
             if (state[pos][sum] == 0) {
                 continue;
             }
+            int new_pos = pos + 1;
+            int b_digit_pos = b.size() - 1 - new_pos;
+            int a_digit_pos = a.size() - 1 - new_pos;
             for (int digit = 0; digit <= 9; digit++) {
                 int new_sum = sum + digit;
                 if (new_sum <= s) {
-                    state[pos + 1][new_sum] += state[pos][sum] + 1;
+                    state[new_pos][new_sum] += state[pos][sum];
+                    int b_digit = std::stoi(b.substr(b_digit_pos, 1));
+                    if (pos < a.size() - 1) {
+                        int a_digit = std::stoi(a.substr(a_digit_pos, 1));
+
+                        if (digit < a_digit) {
+                            state_within_a[new_pos][new_sum] += state[pos][sum];
+                            predecessor_a[new_pos][new_sum] = std::max(digit, predecessor_a[new_pos][new_sum]);
+
+                        }
+                        else if (digit == a_digit)  {
+                            state_within_a[new_pos][new_sum] += state_within_a[pos][sum];
+                            predecessor_a[new_pos][new_sum] = std::max(digit, predecessor_a[new_pos][new_sum]);
+                        }
+                    }
+                    if (digit < b_digit) {
+                        state_within_b[new_pos][new_sum] += state[pos][sum];
+                        predecessor_b[new_pos][new_sum] = std::min(digit, predecessor_b[new_pos][new_sum]);
+                    }
+                    else if (digit == b_digit) {
+                        state_within_b[new_pos][new_sum] += state_within_b[pos][sum];
+                        predecessor_b[new_pos][new_sum] = std::min(digit, predecessor_b[new_pos][new_sum]);
+                    }
+
                 }
             }
         }
     }
+
+    // Find the result.
+    // First number is the number of integers
+    // second number is the lowest integer.
+    // we can find the lowest integer by 
+    // a) finding the first position in which it is achieved and
+    // b) sorting the numbers from lowest to largest in their positions.
+    std::pair<long long, long long> result;
+    result.first = state_within_b[state_within_b.size() - 2][s] - state_within_a[state_within_a.size() - 2][s] + remove_a;
+    // now we need to find the minimum solution.
+    if (remove_a) {
+        result.second = a_num;
+    }
+    else {
+        std::string digits;
+        for (int pos = 0; pos < state_within_b.size() - 1; pos++) {
+            int digit_pos = b.size() - 1 - pos;
+            if (state_within_b[pos][s] - state_within_a[pos][s] > 0) {
+                digits += std::to_string(predecessor_b[pos][s]);
+                result.second = std::stoi(digits);
+                break;
+            }
+        }
+
+    }
+    // long long alternate_result = state_within_b[state_within_b.size() - 2][s] - state_within_a[state_within_a.size() - 2][s] + remove_a;
+    // for (int pos = 0; pos < b.size(); pos++) {
+    //     result.first += state_within_b[pos][s];
+    //     if (pos < a.size()) {
+    //         result.first -= state_within_a[pos][s];
+    //     }
+    // }
+    // result.first += remove_a;
     return result;
 }
 

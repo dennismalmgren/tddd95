@@ -7,14 +7,13 @@ const double PI = std::acos(-1);
 
 enum class ResultType {
     solution,
-    inconsistent,
-    multiple
+    multiple,
+    inconsistent
 };
 
 struct TestCaseResult {
     ResultType resultType;
     std::vector<double> result;
-    std::set<int> free_variables;
 };
 
 struct TestCase {
@@ -105,18 +104,7 @@ TestCaseResult linear_solve(std::vector<std::vector<double>>& A, std::vector<dou
             b[j] += ratio * b[i];
         }
 
-        // clear out the column for previous rows
-        // putting the matrix in reduced R-E form
-        for (int j = i - 1; j >= 0; j--) {
-            double ratio = -A[j][i];
-            for (int k = i; k < n; k++) {
-                A[j][k] += ratio * A[i][k];
-            }
-            b[j] += ratio * b[i];
-        }
-
     }
-
     // check for inconsistencies
     TestCaseResult result;
     bool found_variables = false;
@@ -127,48 +115,27 @@ TestCaseResult linear_solve(std::vector<std::vector<double>>& A, std::vector<dou
                 found_variables = true;
                 break;
             }
-
         }
         if (!found_variables) {
             if (std::abs(b[i]) > 1e-9) {
                 result.resultType = ResultType::inconsistent;
-                return result;
             }
             else {
-                // multiple. return result.
-                result.free_variables.insert(i);
+                result.resultType = ResultType::multiple;
             }
+            return result;
         }
     }
-
-    // variables -only- depending on free variables
-    // are dependent variables.
 
     // now work backwards.
     result.result = std::vector<double>(n);
     result.resultType = ResultType::solution;
-    std::set<int> dependent_variables;
     for (int v_index = n - 1; v_index >= 0; v_index--) {
-        bool ismultiple = (result.free_variables.find(v_index) != result.free_variables.end());
-        if (ismultiple) {
-            continue;
-        }
-        for (auto free_variable: result.free_variables) {
-            if (std::abs(A[v_index][free_variable]) > 1e-9) {
-                dependent_variables.insert(v_index);
-            }
-        }
-        ismultiple = (dependent_variables.find(v_index) != dependent_variables.end());
-        if (ismultiple) {
-            continue;
-        }
         result.result[v_index] = b[v_index];
-    }
-    for (auto dep_var: dependent_variables) {
-        result.free_variables.insert(dep_var);
-    }
-    if (result.free_variables.size() > 0) {
-        result.resultType = ResultType::multiple;
+        for (int j = 0; j < v_index; j++) {
+            A[j][v_index] = A[j][v_index] * result.result[v_index];
+            b[j] -= A[j][v_index];
+        }
     }
     return result;
 }

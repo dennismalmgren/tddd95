@@ -1,21 +1,42 @@
 
+// equationsolver.cpp
+// Author: Dennis Malmgren
+// Solves a linear equation system, or
+// identifies whether it is inconsistent or has
+// multiple solutions
 #include <bits/stdc++.h>
+
+
+// Helper variables to easily swap between test input (for debuggging) and Kattis
 std::ifstream cin("in_equationsolver.txt");
 //auto& cin = std::cin;
 
 const double PI = std::acos(-1);
 
+/// @brief Potential results when solving
+/// a linear system.
 enum class ResultType {
     solution,
-    multiple,
-    inconsistent
+    inconsistent,
+    multiple
 };
 
+/// @brief Helper class to gather the result after trying to solve a system.
+/// Uses variables to keep track of whether the solution was found
+/// or if the system was inconsistent/had multiple solutions.
+/// Free variables can be set to anything which has as a consequence
+/// that there are multiple solutions.
+/// Values in the vector result for indices in free_variables are undefined.
+/// Other values in the result vector indicate the necessary value for those variables.
 struct TestCaseResult {
     ResultType resultType;
     std::vector<double> result;
+    std::set<int> free_variables;
 };
 
+/// @brief TestCase class
+/// Gathers the necessary input to define a linear system problem
+/// Has variables for the matrix A and matrix b in A x = b.
 struct TestCase {
     TestCase(int n): A(n, std::vector<double>(n)), b(n) {
         
@@ -25,6 +46,8 @@ struct TestCase {
     std::vector<double> b;
 };
 
+/// @brief Input reading helper method
+/// @return returns a complete test case by reading from stdin.
 TestCase process_input() 
 {
     int n;
@@ -44,6 +67,11 @@ TestCase process_input()
     return testCase;
 }
 
+
+/// @brief Helper function to print the results. Prints inconsistent/multiple
+/// if the system is classified as such, otherwise the necessary 
+/// value for each variable.
+/// @param testCaseResult the results of solving a linear system.
 void print_result(const TestCaseResult& testCaseResult) 
 { 
     switch (testCaseResult.resultType) {
@@ -61,7 +89,12 @@ void print_result(const TestCaseResult& testCaseResult)
     }
 }
 
-// Requires square matrix.
+/// @brief Solves the system Ax = b. A is assumed to be square.
+/// Runs in O(n^3) time
+/// @param A Matrix
+/// @param b Answers
+/// @return A test case result with variable values defined or the system
+/// classified as inconsistent or having multiple solutions.
 TestCaseResult linear_solve(std::vector<std::vector<double>>& A, std::vector<double>& b) 
 {
     int n = A.size();
@@ -104,7 +137,18 @@ TestCaseResult linear_solve(std::vector<std::vector<double>>& A, std::vector<dou
             b[j] += ratio * b[i];
         }
 
+        // clear out the column for previous rows
+        // putting the matrix in reduced R-E form
+        for (int j = i - 1; j >= 0; j--) {
+            double ratio = -A[j][i];
+            for (int k = i; k < n; k++) {
+                A[j][k] += ratio * A[i][k];
+            }
+            b[j] += ratio * b[i];
+        }
+
     }
+
     // check for inconsistencies
     TestCaseResult result;
     bool found_variables = false;
@@ -115,31 +159,55 @@ TestCaseResult linear_solve(std::vector<std::vector<double>>& A, std::vector<dou
                 found_variables = true;
                 break;
             }
+
         }
         if (!found_variables) {
             if (std::abs(b[i]) > 1e-9) {
                 result.resultType = ResultType::inconsistent;
+                return result;
             }
             else {
-                result.resultType = ResultType::multiple;
+                // multiple. return result.
+                result.free_variables.insert(i);
             }
-            return result;
         }
     }
+
+    // variables -only- depending on free variables
+    // are dependent variables.
 
     // now work backwards.
     result.result = std::vector<double>(n);
     result.resultType = ResultType::solution;
+    std::set<int> dependent_variables;
     for (int v_index = n - 1; v_index >= 0; v_index--) {
-        result.result[v_index] = b[v_index];
-        for (int j = 0; j < v_index; j++) {
-            A[j][v_index] = A[j][v_index] * result.result[v_index];
-            b[j] -= A[j][v_index];
+        bool ismultiple = (result.free_variables.find(v_index) != result.free_variables.end());
+        if (ismultiple) {
+            continue;
         }
+        for (auto free_variable: result.free_variables) {
+            if (std::abs(A[v_index][free_variable]) > 1e-9) {
+                dependent_variables.insert(v_index);
+            }
+        }
+        ismultiple = (dependent_variables.find(v_index) != dependent_variables.end());
+        if (ismultiple) {
+            continue;
+        }
+        result.result[v_index] = b[v_index];
+    }
+    for (auto dep_var: dependent_variables) {
+        result.free_variables.insert(dep_var);
+    }
+    if (result.free_variables.size() > 0) {
+        result.resultType = ResultType::multiple;
     }
     return result;
 }
 
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);
@@ -154,4 +222,5 @@ int main()
     }
   
     std::cout.flush();
+    return 0;
 }

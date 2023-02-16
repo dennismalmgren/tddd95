@@ -1,10 +1,22 @@
 
+// polymult.cpp
+// Author: Dennis Malmgren
+// Multiplies polynomials using 
+// fast fourier transform (FFT) on
+// the complex representation of the polynomials.
+
 #include <bits/stdc++.h>
+
+
+// Helper variables to easily swap between test input (for debuggging) and Kattis
 std::ifstream cin("in_polymult.txt");
 //auto& cin = std::cin;
 
 const double PI = std::acos(-1);
 
+/// @brief TestCase class
+/// Gathers the necessary input to define a polynomail multiplication problem
+/// Has variables for the coefficients of polynomial 1 and 2.
 struct TestCase {
     TestCase() {
         
@@ -13,12 +25,17 @@ struct TestCase {
     std::vector<int> poly2;
 };
 
+/// @brief Helper function to read the test file header
+/// @return the number that defines the number of polynomial multiplications 
+/// to perform.
 int process_header() {
     int t;
     cin >> t;
     return t;
 }
 
+/// @brief Input reading helper method
+/// @return returns a complete test case by reading from stdin.
 TestCase process_input() 
 {
     int n, a;
@@ -38,6 +55,10 @@ TestCase process_input()
     return testCase;
 }
 
+/// @brief Performs inverse FFT, transforming the coefficients back from the frequency domain.
+/// Executes in O(n log n) time.
+/// @param poly the fourier transformed representation of the polynomial.
+/// the parameter is updated as part of the operation.
 void inverse_fft(std::vector<std::complex<double>>& poly) 
 {
     int n = poly.size();
@@ -72,6 +93,10 @@ void inverse_fft(std::vector<std::complex<double>>& poly)
     }
 }
 
+/// @brief Performs inverse FFT, transforming the coefficients to the frequency domain.
+/// Executes in O(n log n) time.
+/// @param poly the polynomial to transform.
+/// the parameter is updated as part of the operation.
 void fft(std::vector<std::complex<double>>& poly) 
 {
     int n = poly.size();
@@ -100,6 +125,14 @@ void fft(std::vector<std::complex<double>>& poly)
 
 }
 
+/// @brief Multiplies two polynomials and stores the result.
+/// transforms both polynomials to their fourier transformed representations
+/// performs the multiplication there, and then transforms the result back 
+/// to a polynomial.
+/// Executes in O(n log n) time.
+/// @param poly1 The first polynomial to multiply.
+/// @param poly2 The second polynomial to multiply.
+/// @param result The vector where the result is stored.
 void poly_mult(std::vector<int>& poly1,
         std::vector<int>& poly2,
         std::vector<int>& result) 
@@ -128,6 +161,9 @@ void poly_mult(std::vector<int>& poly1,
     result.erase(first_non_zero.base(), result.end());
 }
 
+
+/// @brief Helper function to print the results. 
+/// @param results the coefficients of a resulting polynomial.
 void print_result(const std::vector<int>& result) 
 {
     std::cout << (result.size() - 1) << "\n";
@@ -138,6 +174,9 @@ void print_result(const std::vector<int>& result)
     std::cout << "\n";
 }
 
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);
@@ -151,4 +190,5 @@ int main()
     }
   
     std::cout.flush();
+    return 0;
 }

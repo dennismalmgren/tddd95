@@ -3,8 +3,9 @@
 #include <bits/stdc++.h>
 using namespace algo;
 
-std::ifstream cin("in_minspantree.txt");
+std::ifstream cin("in_maxflow.txt");
 //auto& cin = std::cin;
+
 Edge<FlowPayload> dummy_edge;
 
 struct TestCase {
@@ -17,7 +18,6 @@ struct TestCase {
     int t;
 
     adjacency_graph<FlowPayload> g;
-    matrix_ref_graph<FlowPayload> ref_g;
 };
 
 TestCase process_input() 
@@ -26,7 +26,6 @@ TestCase process_input()
     cin >> n >> m >> s >> t;
     TestCase testCase(n, m, s, t);
 
-
     int u, v, c;
     for (int i = 0; i < m; i++) {
         cin >> u >> v >> c;
@@ -34,41 +33,66 @@ TestCase process_input()
         Edge<FlowPayload> backward_edge(v, u, 0, FlowPayload(0, 0, true));
         testCase.g[u].push_back(forward_edge);
         testCase.g[v].push_back(backward_edge);
-        testCase.ref_g[u][v] = forward_edge;
-        testCase.ref_g[v][u] = backward_edge;
     }
    return testCase;
 }
 
-void print_result(adjacency_graph<FlowPayload>& the_graph, std::vector<Edge<FlowPayload>> edges_used, int target_flow) 
+void print_result(adjacency_graph<FlowPayload>& the_graph, int t, int flow) 
 {
-    std::cout << the_graph.size() << " " << target_flow << " " << edges_used.size() << "\n";
-    for (auto edge: edges_used) {
-        std::cout << edge.source << " " << edge.target << " " << edge.payload.flow << "\n";
-    }
-}
-
-void max_flow(matrix_graph<FlowPayload>& g, int s, int t) 
-{
-
-}
-
-std::pair<std::vector<Edge<FlowPayload>>, int> extract_result(matrix_graph<FlowPayload>& g, int t) 
-{
-    std::vector<Edge<FlowPayload>> edges_used;
-    for (auto node: g) {
+    // Determine max flow.
+    int edges_used = 0;
+    // Determine edges used.
+    for (auto node: the_graph) {
         for (auto edge: node) {
-            if (edge.payload.flow > 0 && edge.payload.backward == false) {
-                edges_used.push_back(edge);
-            }   
+            if (edge.payload.backward == false && edge.payload.flow > 0) {
+                edges_used++;
+            }
         }
     }
-    int total_flow = 0;
-    auto target_node_edges = g[t];
-    for (auto edge: target_node_edges) {
-        total_flow += edge.payload.flow;
+
+    std::cout << the_graph.size() << " " << flow << " " << edges_used << "\n";
+    for (auto node: the_graph) {
+        for (auto edge: node) {
+            if (edge.payload.backward == false && edge.payload.flow > 0) {
+                std::cout << edge.source << " " << edge.target << " " << edge.payload.flow << "\n";
+            }
+        }
     }
-    return std::make_pair(edges_used, total_flow);
+}
+
+int max_flow(FlowAdjacencyGraph& g, int s, int t) 
+{
+    FlowMatrixGraph mg(g.size(), std::vector<std::reference_wrapper<FlowEdge>>(g.size(), default_flow_edge));
+    for (auto& node : g) {
+        for (auto& edge : node) {
+            mg[edge.source][edge.target] = edge;
+        }
+    }
+    int flow = 0;
+    while (true) {
+        auto result = bfs_flow(g, s, t);
+        if (result.second > 0) {
+            flow += result.second;
+            int target = t;
+            while (true) {
+                int source = result.first[target];
+                auto& edge = mg[source][target].get();
+                edge.weight -= result.second;
+                edge.payload.flow += result.second;
+                auto& back_edge = mg[target][source].get();
+                back_edge.weight += result.second;
+                back_edge.payload.flow -= result.second;
+                target = source;
+                if (source == s) {
+                    break;
+                }
+            }
+        }
+        else {
+            break;
+        }
+    }
+    return flow;
 }
 
 int main()
@@ -76,8 +100,7 @@ int main()
     std::ios_base::sync_with_stdio(false);
     cin.tie(nullptr);
     auto testCase = process_input();
-    max_flow(testCase.g, testCase.s, testCase.t);
-    auto result = extract_result(testCase.g, testCase.t);
-    print_result(testCase.g, result.first, result.second);
+    int flow = max_flow(testCase.g, testCase.s, testCase.t);
+    print_result(testCase.g, testCase.t, flow);
     std::cout.flush();
 }

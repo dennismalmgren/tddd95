@@ -6,101 +6,92 @@ using namespace algo;
 std::ifstream cin("in_maxflow.txt");
 //auto& cin = std::cin;
 
-Edge<FlowPayload> dummy_edge;
 
 struct TestCase {
-    TestCase(int n, int m, int s, int t) : n(n), m(m), s(s), t(t), g(n) {
-        
+    TestCase(int n, int m, int s, int t) : n(n), m(m), s(s), t(t), g(n), 
+                                            capacity(n, std::vector<int>(n, 0)), 
+                                            flow(n, std::vector<int>(n, 0)) {
     }
+
     int n;
     int m;
     int s;
     int t;
-
-    adjacency_graph<FlowPayload> g;
+    adjacency_graph g;
+    std::vector<std::vector<int>> flow;
+    std::vector<std::vector<int>> capacity;
 };
 
-TestCase process_input() 
+void process_testcase(TestCase& testCase) 
 {
-    int n, m, s, t;
-    cin >> n >> m >> s >> t;
-    TestCase testCase(n, m, s, t);
-
     int u, v, c;
-    for (int i = 0; i < m; i++) {
+    for (int i = 0; i < testCase.m; i++) {
         cin >> u >> v >> c;
-        Edge<FlowPayload> forward_edge(u, v, c, FlowPayload(c, 0, false));
-        Edge<FlowPayload> backward_edge(v, u, 0, FlowPayload(0, 0, true));
+        Edge forward_edge(u, v, c);
+        Edge backward_edge(v, u, 0);
         testCase.g[u].push_back(forward_edge);
         testCase.g[v].push_back(backward_edge);
+        testCase.capacity[u][v] = c;
     }
-   return testCase;
 }
 
-void print_result(adjacency_graph<FlowPayload>& the_graph, int t, int flow) 
+void print_result(adjacency_graph& the_graph, int t, int flow, std::vector<std::vector<int>>& the_flow) 
 {
     // Determine max flow.
-    int edges_used = 0;
     // Determine edges used.
-    for (auto node: the_graph) {
-        for (auto edge: node) {
-            if (edge.payload.backward == false && edge.payload.flow > 0) {
-                edges_used++;
+    int num_nodes = the_graph.size();
+    std::vector<std::pair<int, int>> edges_used;
+    for (int i = 0; i < num_nodes; i++) {
+        for (int j = 0; j < num_nodes; j++) {
+            if (the_flow[i][j] > 0) {
+                edges_used.push_back(std::make_pair(i, j));
             }
         }
     }
-
-    std::cout << the_graph.size() << " " << flow << " " << edges_used << "\n";
-    for (auto node: the_graph) {
-        for (auto edge: node) {
-            if (edge.payload.backward == false && edge.payload.flow > 0) {
-                std::cout << edge.source << " " << edge.target << " " << edge.payload.flow << "\n";
-            }
-        }
+   
+    std::cout << the_graph.size() << " " << flow << " " << edges_used.size() << "\n";
+    for (int i = 0; i < edges_used.size(); i++) {
+        auto& edge = edges_used[i];
+        std::cout << edge.first << " " << edge.second << " " << the_flow[edge.first][edge.second] << "\n";
     }
 }
 
-int max_flow(FlowAdjacencyGraph& g, int s, int t) 
+int max_flow(adjacency_graph& g, 
+                std::vector<std::vector<int>>& capacity, 
+                std::vector<std::vector<int>>& flow, 
+                int s, int t) 
 {
-    FlowMatrixGraph mg(g.size(), std::vector<std::reference_wrapper<FlowEdge>>(g.size(), default_flow_edge));
-    for (auto& node : g) {
-        for (auto& edge : node) {
-            mg[edge.source][edge.target] = edge;
+    std::vector<int> parents(g.size(), -2);
+    int the_flow = 0;
+    while (bfs_flow(g, parents, capacity, s, t)) {
+        int path_flow = MAX_DIST;
+        for (auto v = t; v != s; v = parents[v]) {
+            auto u = parents[v];
+            path_flow = std::min(path_flow, capacity[u][v]);
         }
+
+        for (auto v = t; v != s; v = parents[v]) {
+            auto u = parents[v];
+            flow[u][v] += path_flow;
+            flow[v][u] -= path_flow;                
+            capacity[u][v] -= path_flow;
+            capacity[v][u] += path_flow;
+        }
+        the_flow += path_flow;
     }
-    int flow = 0;
-    while (true) {
-        auto result = bfs_flow(g, s, t);
-        if (result.second > 0) {
-            flow += result.second;
-            int target = t;
-            while (true) {
-                int source = result.first[target];
-                auto& edge = mg[source][target].get();
-                edge.weight -= result.second;
-                edge.payload.flow += result.second;
-                auto& back_edge = mg[target][source].get();
-                back_edge.weight += result.second;
-                back_edge.payload.flow -= result.second;
-                target = source;
-                if (source == s) {
-                    break;
-                }
-            }
-        }
-        else {
-            break;
-        }
-    }
-    return flow;
+    return the_flow;
 }
 
 int main()
 {
     std::ios_base::sync_with_stdio(false);
     cin.tie(nullptr);
-    auto testCase = process_input();
-    int flow = max_flow(testCase.g, testCase.s, testCase.t);
-    print_result(testCase.g, testCase.t, flow);
+    int n, m, s, t;
+    cin >> n >> m >> s >> t;
+    TestCase testCase(n, m, s, t);
+
+    process_testcase(testCase);
+    int flow = max_flow(testCase.g, testCase.capacity, testCase.flow, testCase.s, testCase.t);
+    print_result(testCase.g, testCase.t, flow, testCase.flow);
     std::cout.flush();
 }

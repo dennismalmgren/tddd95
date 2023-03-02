@@ -56,7 +56,7 @@ void process_input(TestCase& testCase)
 void print_result(std::vector<int>& results) 
 {
     for (auto result: results) {
-        if (result < 0) {
+        if (result == std::numeric_limits<int>::max()) {
             std::cout << "impossible\n";
         }
         else {
@@ -96,6 +96,97 @@ void build_adjacency_graph(std::vector<Edge>& roads,
     }
 }
 
+void build_adjacency_graph_roads(adjacency_graph& graph, std::vector<Edge>& roads) 
+{
+    for (auto& edge: roads) {
+        graph[edge.source].push_back(edge);
+        graph[edge.target].push_back(Edge(edge.target, edge.source, edge.weight));
+    }
+}
+
+struct FuelNode
+{
+    FuelNode() = default;
+    int city;
+    int fuel;
+    int dist;
+};
+
+int 
+capped_shortest_path(adjacency_graph& graph, 
+                    std::vector<int>& fuel_prices, 
+                    int start, 
+                    int end, 
+                    int capacity)
+{
+    const int MAX_DIST = std::numeric_limits<int>::max();
+    int n = graph.size();
+    int graph_size = n * (capacity + 1);
+    
+    auto comp2 = [](FuelNode a, FuelNode b ) { 
+        if (a.dist != b.dist) {
+            return a.dist < b.dist; 
+        }
+        else if (a.fuel != b.fuel) {
+            return a.fuel < b.fuel;
+        } 
+        else { 
+            return a.city < b.city;
+        }
+    };
+
+    auto comp = [](FuelNode a, FuelNode b ) { 
+        if (a.dist != b.dist) {
+            return a.dist > b.dist; 
+        }
+        else if (a.fuel != b.fuel) {
+            return a.fuel > b.fuel;
+        } 
+        else { 
+            return a.city > b.city;
+        }
+    };
+
+    std::vector<std::vector<int>> distances(graph_size, std::vector<int>(101, MAX_DIST));
+    std::vector<std::vector<bool>> visited(graph_size, std::vector<bool>(101, false));
+
+    std::priority_queue<FuelNode, std::vector<FuelNode>, decltype(comp)> queue(comp);
+
+    distances[start][0] = 0;
+    queue.push(FuelNode{start, 0, 0});
+
+    while (!queue.empty()) {
+        auto node = queue.top();
+        queue.pop();
+        if (visited[node.city][node.fuel]) {
+            continue;
+        }
+        if (node.city == end) {
+            break;
+        }
+
+        // Enumerate edges. Gassing up.
+        if (node.fuel < capacity &&
+            node.dist + fuel_prices[node.city] < distances[node.city][node.fuel + 1]) {
+            distances[node.city][node.fuel + 1] = node.dist + fuel_prices[node.city];
+            queue.push(FuelNode{node.city, node.fuel + 1, distances[node.city][node.fuel + 1]});
+        }
+
+        // Enumerate edges. Traveling.
+        for (int i = 0; i < graph[node.city].size(); i++) {
+            auto edge = graph[node.city][i];
+            if (node.fuel >= edge.weight &&
+                    distances[node.city][node.fuel] < distances[edge.target][node.fuel - edge.weight]) {
+                    distances[edge.target][node.fuel - edge.weight] = distances[node.city][node.fuel];
+                    queue.push(FuelNode{edge.target, node.fuel - edge.weight, distances[edge.target][node.fuel - edge.weight]});
+            }
+        }
+        visited[node.city][node.fuel] = true;
+    }
+
+    return distances[end][0];
+}
+
 std::vector<int> solve(std::vector<Edge>& roads,
                         std::vector<int>& fuel_prices, 
                         std::vector<int>& capacities,
@@ -105,36 +196,18 @@ std::vector<int> solve(std::vector<Edge>& roads,
     
     int capacity_dim = 101;
 
-    adjacency_graph adjacency_graph(fuel_prices.size() * capacity_dim);
+    adjacency_graph adjacency_graph(fuel_prices.size());
     int capacity_prev = 0;
-    auto capacity_indices = argsort(capacities);
+                                
+    build_adjacency_graph_roads(adjacency_graph, roads);
 
     for (int i = 0; i < capacities.size(); i++) {
-        int capacity = capacities[capacity_indices[i]];
-
+        auto capacity = capacities[i];
         auto start = starts[i];
         auto end = ends[i];
 
-        build_adjacency_graph(roads, fuel_prices, adjacency_graph,
-                                    capacity_prev, 
-                                    capacity, 
-                                    capacity_dim);
-
-        auto paths = shortest_path(adjacency_graph, start * capacity_dim);
-
-        int min_dist = MAX_DIST;
-        int node_id = end * capacity_dim;
-        std::vector<int>& distances = paths.first;
-        for (int end_capacity = 0; end_capacity < capacity; end_capacity++) {
-            min_dist = std::min(distances[node_id++], min_dist);
-        }
-        if (min_dist < MAX_DIST) {
-            results[capacity_indices[i]] = min_dist;
-        }
-        else {
-            results[capacity_indices[i]] = -1;
-        }
-        capacity_prev = capacity;
+        auto dist = capped_shortest_path(adjacency_graph, fuel_prices, start, end, capacity);
+        results[i] = dist;
     }
     return results;
 }

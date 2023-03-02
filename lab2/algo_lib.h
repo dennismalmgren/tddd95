@@ -95,86 +95,31 @@ bool bfs_flow(const adjacency_graph& graph,
 
 }
 
-// std::pair<std::vector<int>, int> 
-//         bfs_flow(FlowAdjacencyGraph graph, 
-//                         int start, 
-//                         int stop) 
-// {
-//     std::vector<int> parents(graph.size(), -1);
-//     parents[start] = -2;
-//     std::queue<std::pair<int, int>> q;
-//     q.push(std::make_pair(start, MAX_DIST));
-//     while (!q.empty()) {
-//         auto[current_node, current_flow] = q.front();
-//         q.pop();
-//         for (auto& edge: graph[current_node]) {
-//             if (parents[edge.target] == -1 && edge.weight > 0) {
-//                 parents[edge.target] = current_node;
-//                 int new_flow = std::min(current_flow, edge.weight);
-//                 if (edge.target == stop) {
-//                     return std::make_pair(parents, new_flow);
-//                 }
-//                 q.push(std::make_pair(edge.target, new_flow));
-//             }
-//         }
-//     }
-//     return std::make_pair(parents, 0);
-// }
+int max_flow(adjacency_graph& g, 
+                std::vector<std::vector<int>>& capacity, 
+                std::vector<std::vector<int>>& flow, 
+                int s, int t) 
+{
+    std::vector<int> parents(g.size(), -2);
+    int the_flow = 0;
+    while (bfs_flow(g, parents, capacity, s, t)) {
+        int path_flow = MAX_DIST;
+        for (auto v = t; v != s; v = parents[v]) {
+            auto u = parents[v];
+            path_flow = std::min(path_flow, capacity[u][v]);
+        }
 
-// std::pair<std::vector<int>, std::map<int, int>> 
-//         shortest_path(FlowAdjacencyGraph graph, 
-//                         int start, 
-//                         int stop = -1,
-//                         bool useweightsstrictlyabovezero=false)
-// {
-//     std::vector<int> distances(graph.size(), MAX_DIST);
-//     std::map<int, int> parents;
-
-//     auto comp = [](DistNode a, DistNode b ) { 
-//         if (a.payload.dist != b.payload.dist) {
-//             return a.payload.dist < b.payload.dist; 
-//         }
-//         else {
-//             return a.n < b.n;
-//         }
-//     };
-
-//     std::set<DistNode, decltype(comp)> unvisited(comp);
-
-//     DistNode root;
-//     root.payload.dist = 0;
-//     root.n = start;
-//     unvisited.insert(root);
-//     distances[start] = 0;
-
-//     while (unvisited.size() > 0) {
-//         auto node = *unvisited.begin();
-//         unvisited.erase(unvisited.begin());
-//         if (node.n == stop) {
-//             break;
-//         }
-//         for (auto edge: graph[node.n]) {    
-//             if ((!useweightsstrictlyabovezero || edge.weight > 0) 
-//                         && distances[edge.target] > distances[node.n] + edge.weight) {
-//                 if (distances[edge.target] != MAX_DIST) {
-//                     DistNode searchNode;
-//                     searchNode.payload.dist = distances[edge.target];
-//                     searchNode.n = edge.target;
-//                     unvisited.erase(searchNode);
-//                 }
-//                 distances[edge.target] = distances[node.n] + edge.weight;
-
-//                 DistNode unvisitedNode;
-//                 unvisitedNode.payload.dist = distances[edge.target];
-//                 unvisitedNode.n = edge.target;
-//                 unvisited.insert(unvisitedNode);
-//                 parents[edge.target] = node.n;
-//             }
-//         }
-//     }
-
-//     return std::make_pair(distances, parents);
-// }
+        for (auto v = t; v != s; v = parents[v]) {
+            auto u = parents[v];
+            flow[u][v] += path_flow;
+            flow[v][u] -= path_flow;                
+            capacity[u][v] -= path_flow;
+            capacity[v][u] += path_flow;
+        }
+        the_flow += path_flow;
+    }
+    return the_flow;
+}
 
 }
 

@@ -56,31 +56,7 @@ void print_result(adjacency_graph& the_graph, int t, int flow, std::vector<std::
     }
 }
 
-int max_flow(adjacency_graph& g, 
-                std::vector<std::vector<int>>& capacity, 
-                std::vector<std::vector<int>>& flow, 
-                int s, int t) 
-{
-    std::vector<int> parents(g.size(), -2);
-    int the_flow = 0;
-    while (bfs_flow(g, parents, capacity, s, t)) {
-        int path_flow = MAX_DIST;
-        for (auto v = t; v != s; v = parents[v]) {
-            auto u = parents[v];
-            path_flow = std::min(path_flow, capacity[u][v]);
-        }
 
-        for (auto v = t; v != s; v = parents[v]) {
-            auto u = parents[v];
-            flow[u][v] += path_flow;
-            flow[v][u] -= path_flow;                
-            capacity[u][v] -= path_flow;
-            capacity[v][u] += path_flow;
-        }
-        the_flow += path_flow;
-    }
-    return the_flow;
-}
 
 int main()
 {

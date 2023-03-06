@@ -2,7 +2,6 @@
 std::ifstream cin("in_equivalences.txt");
 //auto& cin = std::cin;
 
-
 struct Node {
     int n;
     int dist;

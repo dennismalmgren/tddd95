@@ -72,10 +72,10 @@ bool dfs_flow(const adjacency_graph& graph,
 bool bfs_flow(const adjacency_graph& graph, 
                 std::vector<int>& parents,
                 std::vector<std::vector<int>>& capacity,
+                    std::vector<bool>& visited,
                         int start, 
                         int stop) 
 {
-    std::vector<bool> visited(graph.size(), false);
     parents[start] = -1;
     std::queue<int> q;
     visited[start] = true;
@@ -106,8 +106,9 @@ int max_flow(adjacency_graph& g,
                 int s, int t) 
 {
     std::vector<int> parents(g.size(), -2);
+    std::vector<bool> visited(g.size(), false);
     int the_flow = 0;
-    while (bfs_flow(g, parents, capacity, s, t)) {
+    while (bfs_flow(g, parents, capacity, visited, s, t)) {
         int path_flow = MAX_DIST;
         for (auto v = t; v != s; v = parents[v]) {
             auto u = parents[v];
@@ -122,6 +123,7 @@ int max_flow(adjacency_graph& g,
             capacity[v][u] += path_flow;
         }
         the_flow += path_flow;
+        visited = std::vector<bool>(g.size(), false);
     }
     return the_flow;
 }

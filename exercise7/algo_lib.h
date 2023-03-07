@@ -129,8 +129,6 @@ int max_flow(adjacency_graph& g,
 template<typename T>
 struct DistNode
 {
-    DistNode() = default;
-    DistNode(int n, T dist) : n(n), dist(dist) {}
     int n;
     T dist;
 };
@@ -283,20 +281,6 @@ std::vector<size_t> argsort(const std::vector<T> &array) {
               });
 
     return indices;
-}
-
-
-void get_scc(int i, std::set<int>& scc, int scc_id, std::map<int, int>& scc_ids, std::vector<bool>& discovered,
-            adjacency_graph& adjacency) 
-{
-    discovered[i] = true;
-    scc.insert(i);
-    scc_ids[i] = scc_id;
-    for (auto edge: adjacency[i]) {
-        if (!discovered[edge.target]) {
-            get_scc(edge.target, scc, scc_id, scc_ids, discovered, adjacency);
-        }
-    }
 }
 
 }

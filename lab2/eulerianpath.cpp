@@ -11,13 +11,15 @@ using namespace algo;
 struct TestCase {
     TestCase(int n, int m) 
     : n(n), m(m),
-      adjacency(n) {
+      adjacency(n, std::vector<int>(n)),
+      degrees(n) {
         
     }
 
     int n;
     int m;
-    adjacency_graph adjacency;
+    std::vector<std::vector<int>> adjacency;
+    std::vector<int> degrees;
     bool is_end() 
     {
         return n == 0 && m == 0;
@@ -34,11 +36,13 @@ TestCase process_input()
     }
 
     int u, v, w;
-
+    int odd_count = n;
     for (int i = 0; i < m; i++) {
         cin >> u >> v;
-
-        testCase.adjacency[u].push_back(Edge(u, v, 1));
+        testCase.adjacency[u][v]++;
+        testCase.adjacency[v][u]++;
+        degrees[u]++;
+        degrees[v]++;
     }
 
     return testCase;
@@ -60,11 +64,43 @@ void print_result(std::vector<int>& result)
     }
 }
 
+std::vector<int> solve(std::vector<std::vector<int>>& graph, std::vector<int>& degrees) {
 
-std::vector<int> solve(adjacency_graph& graph) {
+    std::vector<int> result;
+    int n = graph.size();
+    std::vector<int> odd_vertices;
+    int first = -1;
+    for (int i = 0; i < n; i++) {
+        if (degrees[i] % 2 == 1) {
+            odd_vertices.push_back(i);
+        }
+        if (degrees[i] > 0 && first == -1) {
+            first = i;
+        }
+    }
 
-    std::vector<int> path;
-    return path;
+    if (odd_vertices.size() == 1 || odd_vertices.size() > 2) {
+        return result; // Impossible
+    }
+
+    if (odd_vertices.size() == 2) {
+        // Add an edge.
+        graph[odd_vertices[0]][odd_vertices[1]]++;
+        graph[odd_vertices[0]][odd_vertices[1]]++;
+    }
+
+    std::stack<int> path;
+    path.push(first);
+    while (!path.empty()) {
+        int top = path.top();
+        path.pop();
+        if (degrees[top] == 0) {
+            result.push_back(top);
+        }
+    }
+
+    // all nodes need to have even degree except for 0 or 2.
+    return result;
 }
 
 int main()

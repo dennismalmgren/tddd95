@@ -22,6 +22,7 @@ struct BaseEdge
     T weight;
 };
 
+
 using Edge = BaseEdge<int>;
 using DoubleEdge = BaseEdge<double>;
 
@@ -187,6 +188,66 @@ std::pair<std::vector<T>, std::map<int, int>> shortest_path(base_adjacency_graph
     return std::make_pair(distances, parents);
 }
 
+
+
+template<typename T>
+void shortest_path_flow(base_adjacency_graph<T>& graph, 
+        int start,
+        std::vector<std::vector<int>>& capacity,
+        std::vector<std::vector<int>>& cost,
+        std::vector<int>& parents,
+        std::vector<int>& distances)
+{
+    const T MAX_DIST = std::numeric_limits<T>::max();
+    std::fill(parents.begin(), parents.end(), -1);
+    std::fill(distances.begin(), distances.end(), MAX_DIST);
+    int n = graph.size();
+
+    auto comp = [](DistNode<T> a, DistNode<T> b ) { 
+        if (a.dist != b.dist) {
+            return a.dist < b.dist; 
+        }
+        else {
+            return a.n < b.n;
+        }
+    };
+
+    //std::priority_queue<Node, std::vector<Node>, decltype(comp)> unvisited(comp);
+    std::set<DistNode<T>, decltype(comp)> unvisited(comp);
+
+    DistNode<T> root;
+    root.dist = 0;
+    root.n = start;
+    unvisited.insert(root);
+    distances[start] = 0;
+
+    while (unvisited.size() > 0) {
+        auto node = *unvisited.begin();
+        unvisited.erase(unvisited.begin());
+        for (auto edge: graph[node.n]) {  
+            if (capacity[edge.source][edge.target] == 0) {
+                continue;
+            }  
+            auto edge_weight = cost[edge.source][edge.target];// * capacity[edge.source][edge.target];
+            if (distances[edge.target] > distances[node.n] + edge_weight) {
+                if (distances[edge.target] != MAX_DIST) {
+                    DistNode<T> searchNode;
+                    searchNode.dist = distances[edge.target];
+                    searchNode.n = edge.target;
+                    unvisited.erase(searchNode);
+                }
+                distances[edge.target] = distances[node.n] + edge_weight;
+                DistNode<T> unvisitedNode;
+                unvisitedNode.dist = distances[edge.target];
+                unvisitedNode.n = edge.target;
+                unvisited.insert(unvisitedNode);
+                parents[edge.target] = node.n;
+            }
+        }
+    }
+}
+
+
 /// @brief Helper class to implement disjoint sets.
 /// supports union and find operations.
 class DisjointSet {
@@ -301,6 +362,163 @@ void get_scc(int i, std::set<int>& scc, int scc_id, std::map<int, int>& scc_ids,
     }
 }
 
+template<typename T>
+void flow_shortest_path_negative_weights(int n, 
+                                    std::vector<BaseEdge<T>>& edges, 
+                                    std::vector<std::vector<T>>& capacity,
+                                    std::vector<std::vector<T>>& cost,
+                                    std::vector<T>& distances,
+                                    std::vector<T>& parents,
+                                    int start, 
+                                    bool ignore_cycles = false)
+{
+    const T MAX_DIST = std::numeric_limits<T>::max();
+    const T MIN_DIST = std::numeric_limits<T>::min();
+    
+    distances[start] = 0;
+
+    for (int i = 0; i < n - 1; i++) {
+        for (auto& edge: edges) {
+            if (capacity[edge.source][edge.target] == 0) {
+                continue;
+            }
+            if (distances[edge.source] == MAX_DIST) {
+                continue;
+            }
+            auto edge_weight = capacity[edge.source][edge.target] * cost[edge.source][edge.target];
+
+            if (distances[edge.source] + edge_weight < distances[edge.target]) {
+                distances[edge.target] = distances[edge.source] + edge_weight;
+                parents[edge.target] = edge.source;
+            }
+        }
+    }
+    
+    // Run it again..
+    if (!ignore_cycles) {
+        for (int i = 0; i < n - 1; i++) {
+            for (auto& edge: edges) {
+                if (capacity[edge.source][edge.target] == 0) {
+                    continue;
+                }
+                if (distances[edge.source] < MAX_DIST) {
+                    auto edge_weight = capacity[edge.source][edge.target] * cost[edge.source][edge.target];
+                    if (distances[edge.source] == MIN_DIST) {
+                        distances[edge.target] = MIN_DIST;
+                        parents[edge.target] = edge.source;
+                    }
+                    else if (distances[edge.source] + edge_weight < distances[edge.target]) {
+                        distances[edge.target] = MIN_DIST;
+                        parents[edge.target] = edge.source;
+                    }
+                }
+            }
+        }
+    }
+}
+
+template<typename T>
+void shortest_path_negative_weights(int n, 
+                                    std::vector<BaseEdge<T>>& edges, 
+                                    std::vector<T>& distances,
+                                    std::vector<T>& parents,
+                                    int start, 
+                                    bool ignore_cycles = false)
+{
+    const T MAX_DIST = std::numeric_limits<T>::max();
+    const T MIN_DIST = std::numeric_limits<T>::min();
+    
+    distances[start] = 0;
+
+    for (int i = 0; i < n - 1; i++) {
+        for (auto& edge: edges) {
+            if (distances[edge.source] == MAX_DIST) {
+                continue;
+            }
+            if (distances[edge.source] + edge.weight < distances[edge.target]) {
+                distances[edge.target] = distances[edge.source] + edge.weight;
+                parents[edge.target] = edge.source;
+            }
+        }
+    }
+    
+    // Run it again..
+    if (!ignore_cycles) {
+        for (int i = 0; i < n - 1; i++) {
+            for (auto& edge: edges) {
+                if (distances[edge.source] < MAX_DIST) {
+                    if (distances[edge.source] == MIN_DIST) {
+                        distances[edge.target] = MIN_DIST;
+                        parents[edge.target] = edge.source;
+                    }
+                    else if (distances[edge.source] + edge.weight < distances[edge.target]) {
+                        distances[edge.target] = MIN_DIST;
+                        parents[edge.target] = edge.source;
+                    }
+                }
+            }
+        }
+    }
+}
+
+std::pair<int, int> min_cost_max_flow(int n, 
+                adjacency_graph& graph, 
+                std::vector<std::vector<int>>& capacity, 
+                std::vector<std::vector<int>>& flow, 
+                std::vector<std::vector<int>>& cost, 
+                int s, int t) 
+{
+    const int MAX_DIST = std::numeric_limits<int>::max();
+    std::vector<std::vector<int>> original_cost = cost;
+    int the_flow = 0;
+    int the_cost = 0;
+    std::vector<int> parents(n);
+    std::vector<int> distances(n);
+    while (true) {
+        shortest_path_flow(graph, s, capacity, cost, parents, distances);
+
+        if (distances[t] == MAX_DIST) {
+            break;
+        }
+
+        int path_flow = MAX_DIST;
+        for (auto v = t; v != s; v = parents[v]) {
+            auto u = parents[v];
+            path_flow = std::min(path_flow, capacity[u][v]);
+        }
+
+        the_flow += path_flow;
+        // augment flow x along P
+        for (auto v = t; v != s; v = parents[v]) {
+            auto u = parents[v];
+            flow[u][v] += path_flow;
+            flow[v][u] -= path_flow;
+            the_cost += path_flow * original_cost[u][v];
+            capacity[u][v] -= path_flow;
+            capacity[v][u] += path_flow;
+        }
+
+        // reduce costs
+        for (auto& node : graph) {
+            for (auto& edge : node) {
+                if (capacity[edge.source][edge.target] == 0) {
+                    continue;
+                }
+                cost[edge.source][edge.target] += distances[edge.source] - distances[edge.target];
+            }
+        }
+        // for (int i = 0; i < n; i++) {
+        //     for (int j = 0; j < n; j++) {
+        //         if (capacity[i][j] == 0) {
+        //             continue;
+        //         }
+        //         cost[i][j] += distances[i] - distances[j];
+        //     }
+        // }
+    }
+
+    return std::make_pair(the_cost, the_flow);
+}
 }
 
 #endif

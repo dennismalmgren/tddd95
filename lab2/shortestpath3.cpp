@@ -70,63 +70,22 @@ void print_result(std::vector<int>& results)
     }
 }
 
-template<typename T>
-std::pair<std::vector<T>, std::map<int, int>> shortest_path_negative_weights(base_adjacency_graph<T>& graph, 
-int start)
-{
-    const T MAX_DIST = std::numeric_limits<T>::max();
-    const T MIN_DIST = std::numeric_limits<T>::min();
-    
-    int n = graph.size();
-    std::vector<T> distances(n, MAX_DIST);
-    distances[start] = 0;
-
-    std::map<int, int> parents;
-
-    for (int i = 0; i < n - 1; i++) {
-        for (auto& node : graph) {
-            for (auto& edge: node) {
-                if (distances[edge.source] < MAX_DIST) {
-                    if (distances[edge.source] + edge.weight < distances[edge.target]) {
-                        distances[edge.target] = distances[edge.source] + edge.weight;
-                        parents[edge.target] = edge.source;
-                    }
-                }
-            }
-        }
-    }
-    
-    //std::vector<T> distances_copy = distances;
-    
-    // Run it again..
-    for (int i = 0; i < n - 1; i++) {
-        for (auto& node : graph) {
-            for (auto& edge: node) {
-                if (distances[edge.source] < MAX_DIST) {
-                    if (distances[edge.source] == MIN_DIST) {
-                        distances[edge.target] = MIN_DIST;
-                        parents[edge.target] = edge.source;
-                    }
-                    else if (distances[edge.source] + edge.weight < distances[edge.target]) {
-                        distances[edge.target] = MIN_DIST;
-                        parents[edge.target] = edge.source;
-                    }
-                }
-            }
-        }
-    }
-
-    return std::make_pair(distances, parents);
-}
-
 
 std::vector<int> solve(adjacency_graph& graph, int start,
     std::vector<int>& queries) {
-
-    auto paths = shortest_path_negative_weights(graph, start);
+    std::vector<Edge> edges;
+    for (auto& node : graph) {
+        for (auto& edge : node) {
+            edges.push_back(edge);
+        }
+    }
+    std::vector<int> distances(graph.size(), std::numeric_limits<int>::max());
+    std::vector<int> parents(graph.size(), -1);
+    auto weight_fun = [](Edge& e) { return e.weight; };
+    shortest_path_negative_weights(graph.size(), edges, distances, parents, start, weight_fun);
     std::vector<int> dists;
     for (auto query: queries) {
-        dists.push_back(paths.first[query]);
+        dists.push_back(distances[query]);
     }
     return dists;
 }

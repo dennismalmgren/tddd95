@@ -72,6 +72,7 @@ void print_result(std::vector<int>& results)
             std::cout << result << "\n";    
         }
     }
+    std::cout << "\n";
 }
 
 template<typename T>
@@ -97,7 +98,7 @@ std::vector<std::vector<T>> shortest_paths_negative_weights(base_adjacency_graph
     for (int k = 0; k < n; k++) {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                if (distances[i][j] < MAX_DIST && distances[j][k] < MAX_DIST) {
+                if (distances[i][k] < MAX_DIST && distances[k][j] < MAX_DIST) {
                     distances[i][j] = std::min(distances[i][j], distances[i][k] + distances[k][j]);
                 }
             }
@@ -108,20 +109,20 @@ std::vector<std::vector<T>> shortest_paths_negative_weights(base_adjacency_graph
     for (int k = 0; k < n; k++) {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                if (distances[i][j] < MAX_DIST && distances[j][k] < MAX_DIST) {
+                if (distances[i][k] < MAX_DIST && distances[k][j] < MAX_DIST) {
                     if (distances[i][k] == MIN_DIST || distances[k][j] == MIN_DIST) {
                         distances[i][j] = MIN_DIST;
-                        continue;
                     }
-                    if (distances[i][k] + distances[k][j] < distances[i][j]) {
+                    else if (distances[i][k] + distances[k][j] < distances[i][j]) {
+                        distances[i][j] = MIN_DIST;
+                    }
+                    else if (distances[k][k] < 0) {
                         distances[i][j] = MIN_DIST;
                     }
                 }
             }
         }
     }
-
-    
 
     return distances;
 }

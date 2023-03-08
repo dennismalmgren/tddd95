@@ -283,6 +283,53 @@ std::vector<size_t> argsort(const std::vector<T> &array) {
     return indices;
 }
 
+
+template<typename T>
+void shortest_path_negative_weights(int n, 
+                                    std::vector<BaseEdge<T>>& edges, 
+                                    std::vector<T>& distances,
+                                    std::vector<T>& parents,
+                                    int start, 
+                                    bool ignore_cycles = false)
+{
+    const T MAX_DIST = std::numeric_limits<T>::max();
+    const T MIN_DIST = std::numeric_limits<T>::min();
+    
+    distances[start] = 0;
+
+    for (int i = 0; i < n - 1; i++) {
+        for (auto& edge: edges) {
+            if (distances[edge.source] == MAX_DIST) {
+                continue;
+            }
+            if (distances[edge.source] + edge.weight < distances[edge.target] &&
+            distances[edge.source] + edge.weight < 0) {
+                distances[edge.target] = distances[edge.source] + edge.weight;
+                parents[edge.target] = edge.source;
+            }
+        }
+    }
+    
+    // Run it again..
+    if (!ignore_cycles) {
+        for (int i = 0; i < n - 1; i++) {
+            for (auto& edge: edges) {
+                if (distances[edge.source] < MAX_DIST) {
+                    if (distances[edge.source] == MIN_DIST) {
+                        distances[edge.target] = MIN_DIST;
+                        parents[edge.target] = edge.source;
+                    }
+                    else if (distances[edge.source] + edge.weight < distances[edge.target]  &&
+                                    distances[edge.source] + edge.weight < 0) {
+                        distances[edge.target] = MIN_DIST;
+                        parents[edge.target] = edge.source;
+                    }
+                }
+            }
+        }
+    }
+}
+
 }
 
 #endif

@@ -1,25 +1,27 @@
 //distance/parent[] shortest_path(graph G, node start)
-#include "algo_lib.h"
+//#include "algo_lib.h"
 #include <bits/stdc++.h>
 
 std::ifstream cin("in_eulerianpath.txt");
 //auto& cin = std::cin;
 
-using namespace algo;
+//using namespace algo;
 
 
 struct TestCase {
     TestCase(int n, int m) 
     : n(n), m(m),
-      adjacency(n, std::vector<int>(n)),
-      degrees(n) {
+      ingoing(n),
+      out_degrees(n), 
+      in_degrees(n) {
         
     }
 
     int n;
     int m;
-    std::vector<std::vector<int>> adjacency;
-    std::vector<int> degrees;
+    std::vector<std::vector<int>> ingoing;
+    std::vector<int> out_degrees;
+    std::vector<int> in_degrees;
     bool is_end() 
     {
         return n == 0 && m == 0;
@@ -39,10 +41,9 @@ TestCase process_input()
     int odd_count = n;
     for (int i = 0; i < m; i++) {
         cin >> u >> v;
-        testCase.adjacency[u][v]++;
-        testCase.adjacency[v][u]++;
-        degrees[u]++;
-        degrees[v]++;
+        testCase.out_degrees[u]++;
+        testCase.in_degrees[v]++;
+        testCase.ingoing[v].push_back(u);
     }
 
     return testCase;
@@ -64,42 +65,73 @@ void print_result(std::vector<int>& result)
     }
 }
 
-std::vector<int> solve(std::vector<std::vector<int>>& graph, std::vector<int>& degrees) {
-
+std::vector<int> solve(std::vector<std::vector<int>>& ingoing, 
+                        int m,
+                        std::vector<int>& in_degrees, 
+                        std::vector<int>& out_degrees) 
+{
     std::vector<int> result;
-    int n = graph.size();
-    std::vector<int> odd_vertices;
-    int first = -1;
+    int n = ingoing.size();
+    int starting_point = -1;
+    int ending_point = -1;
+    bool fail = false;
     for (int i = 0; i < n; i++) {
-        if (degrees[i] % 2 == 1) {
-            odd_vertices.push_back(i);
+        if (in_degrees[i] + 1 == out_degrees[i]) {
+            if (starting_point != -1) {
+                fail = true;
+                break;
+            }
+            else {
+                starting_point = i;
+            }
         }
-        if (degrees[i] > 0 && first == -1) {
-            first = i;
+        else if (in_degrees[i] == out_degrees[i] + 1) {
+            if (ending_point != -1) {
+                fail = true;
+                break;
+            }
+            else {
+                ending_point = i;
+            }
         }
-    }
-
-    if (odd_vertices.size() == 1 || odd_vertices.size() > 2) {
-        return result; // Impossible
-    }
-
-    if (odd_vertices.size() == 2) {
-        // Add an edge.
-        graph[odd_vertices[0]][odd_vertices[1]]++;
-        graph[odd_vertices[0]][odd_vertices[1]]++;
-    }
-
-    std::stack<int> path;
-    path.push(first);
-    while (!path.empty()) {
-        int top = path.top();
-        path.pop();
-        if (degrees[top] == 0) {
-            result.push_back(top);
+        else if (in_degrees[i] != out_degrees[i]) {
+            fail = true;
+            break;
         }
     }
 
-    // all nodes need to have even degree except for 0 or 2.
+    if (fail) {
+        return result;
+    }
+
+    if (starting_point == -1) {
+        starting_point = 0;
+    }
+
+    std::stack<int> stack;
+    int start = 0;
+    if (starting_point != -1 && ending_point != -1) {
+        start = ending_point;
+    }
+    stack.push(start);
+    while (!stack.empty()) {
+        int current = stack.top();
+        if (ingoing[current].size() == 0) {
+            result.push_back(current);
+            stack.pop();
+            continue;
+        }
+        else {
+            stack.push(ingoing[current].back());
+            ingoing[current].pop_back();
+        }
+    }
+
+    if (result.size() != m + 1) {
+        result.clear();
+        return result;
+    }
+
     return result;
 }
 
@@ -112,7 +144,7 @@ int main()
         if (testCase.is_end()) {
             break;
         }
-        auto result = solve(testCase.adjacency);
+        auto result = solve(testCase.ingoing, testCase.m, testCase.in_degrees, testCase.out_degrees);
         print_result(result);
     }
 

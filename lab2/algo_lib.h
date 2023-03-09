@@ -188,24 +188,26 @@ std::pair<std::vector<T>, std::map<int, int>> shortest_path(base_adjacency_graph
     return std::make_pair(distances, parents);
 }
 
+using ll = long long;
 
 
-template<typename T>
-void shortest_path_flow(base_adjacency_graph<T>& graph, 
+void shortest_path_flow(adjacency_graph& graph, 
+        adjacency_graph& reversed,  
         int start,
-        std::vector<std::vector<int>>& capacity,
-        std::vector<std::vector<int>>& cost,
-        std::vector<int>& parents,
-        std::vector<int>& distances)
+        std::vector<ll>& potentials,
+        std::vector<std::vector<ll>>& capacity,
+        std::vector<std::vector<ll>>& flow,
+        std::vector<std::vector<ll>>& cost,
+        std::vector<std::pair<int, bool>>& parents,
+        std::vector<ll>& distances)
 {
-    const T MAX_DIST = std::numeric_limits<T>::max();
-    std::fill(parents.begin(), parents.end(), -1);
+    const ll MAX_DIST = std::numeric_limits<ll>::max() / 2;
     std::fill(distances.begin(), distances.end(), MAX_DIST);
     int n = graph.size();
-
-    auto comp = [](DistNode<T> a, DistNode<T> b ) { 
+    std::vector<bool> visited(n, false);
+    auto comp = [](DistNode<ll> a, DistNode<ll> b ) { 
         if (a.dist != b.dist) {
-            return a.dist < b.dist; 
+            return a.dist < b.dist;     
         }
         else {
             return a.n < b.n;
@@ -213,37 +215,45 @@ void shortest_path_flow(base_adjacency_graph<T>& graph,
     };
 
     //std::priority_queue<Node, std::vector<Node>, decltype(comp)> unvisited(comp);
-    std::set<DistNode<T>, decltype(comp)> unvisited(comp);
-
-    DistNode<T> root;
-    root.dist = 0;
-    root.n = start;
-    unvisited.insert(root);
+    std::set<DistNode<ll>, decltype(comp)> unvisited(comp);
+    unvisited.insert(DistNode<ll>(start, 0));
     distances[start] = 0;
-
     while (unvisited.size() > 0) {
         auto node = *unvisited.begin();
         unvisited.erase(unvisited.begin());
+        visited[node.n] = true;
+        int node_dist = distances[node.n] + potentials[node.n];
         for (auto edge: graph[node.n]) {  
-            if (capacity[edge.source][edge.target] == 0) {
-                continue;
-            }  
-            auto edge_weight = cost[edge.source][edge.target];// * capacity[edge.source][edge.target];
-            if (distances[edge.target] > distances[node.n] + edge_weight) {
-                if (distances[edge.target] != MAX_DIST) {
-                    DistNode<T> searchNode;
-                    searchNode.dist = distances[edge.target];
-                    searchNode.n = edge.target;
-                    unvisited.erase(searchNode);
-                }
-                distances[edge.target] = distances[node.n] + edge_weight;
-                DistNode<T> unvisitedNode;
-                unvisitedNode.dist = distances[edge.target];
-                unvisitedNode.n = edge.target;
-                unvisited.insert(unvisitedNode);
-                parents[edge.target] = node.n;
+            if (!visited[edge.target]) {
+                auto target_dist = node_dist - potentials[edge.target] + cost[edge.source][edge.target];
+                if (capacity[edge.source][edge.target] - flow[edge.source][edge.target] > 0 && target_dist < distances[edge.target]) {
+                    if (distances[edge.target] != MAX_DIST) {
+                        unvisited.erase(DistNode<ll>(edge.target, distances[edge.target]));
+                    }
+                    distances[edge.target] = target_dist;
+                    parents[edge.target] = std::make_pair(edge.source, true);
+                    unvisited.insert(DistNode<ll>(edge.target, distances[edge.target]));
+                }  
             }
         }
+
+        for (auto edge: reversed[node.n]) {  
+            if (!visited[edge.target]) {
+                auto target_dist = node_dist - potentials[edge.target] - cost[edge.source][edge.target];
+                if (flow[edge.source][edge.target] > 0 && target_dist < distances[edge.target]) {
+                    if (distances[edge.target] != MAX_DIST) {
+                        unvisited.erase(DistNode<ll>(edge.target, distances[edge.target]));
+                    }
+                    distances[edge.target] = target_dist;
+                    parents[edge.target] = std::make_pair(edge.source, false);
+                    unvisited.insert(DistNode<ll>(edge.target, distances[edge.target]));
+                }  
+            }
+        }
+    }
+
+    for (int i = 0; i < n; ++i) {
+        potentials[i] = std::min(distances[i] + potentials[i], MAX_DIST);
     }
 }
 
@@ -461,64 +471,68 @@ void shortest_path_negative_weights(int n,
     }
 }
 
-std::pair<int, int> min_cost_max_flow(int n, 
+std::pair<ll, ll> min_cost_max_flow(int n, 
                 adjacency_graph& graph, 
-                std::vector<std::vector<int>>& capacity, 
-                std::vector<std::vector<int>>& flow, 
-                std::vector<std::vector<int>>& cost, 
+                adjacency_graph& reversed, 
+                std::vector<std::vector<ll>>& capacity, 
+                std::vector<std::vector<ll>>& flow, 
+                std::vector<std::vector<ll>>& cost, 
                 int s, int t) 
 {
-    const int MAX_DIST = std::numeric_limits<int>::max();
-    std::vector<std::vector<int>> original_cost = cost;
-    int the_flow = 0;
-    int the_cost = 0;
-    std::vector<int> parents(n);
-    std::vector<int> distances(n);
+    const ll MAX_DIST = std::numeric_limits<ll>::max() / 2;
+    ll the_flow = 0;
+    ll the_cost = 0;
+    std::vector<std::pair<int, bool>> parents(n);
+    std::vector<ll> distances(n);
+    std::vector<ll> potentials(n, 0);
+    
     while (true) {
-        shortest_path_flow(graph, s, capacity, cost, parents, distances);
+        shortest_path_flow(graph, reversed, s, potentials, capacity, flow, cost, parents, distances); 
 
         if (distances[t] == MAX_DIST) {
             break;
         }
 
-        int path_flow = MAX_DIST;
-        for (auto v = t; v != s; v = parents[v]) {
-            auto u = parents[v];
-            path_flow = std::min(path_flow, capacity[u][v]);
+        ll path_flow = MAX_DIST;
+        bool forward;
+        int u;
+        // u = p, v = x.
+        // r refers to parent.
+        for (auto v = t; v != s; v = parents[v].first) {
+            u = parents[v].first;
+            forward = parents[v].second;
+
+            if (forward) {
+                path_flow = std::min(path_flow, capacity[u][v] - flow[u][v]);
+            }
+            else {
+                path_flow = std::min(path_flow, flow[v][u]);
+            }
         }
 
         the_flow += path_flow;
-        // augment flow x along P
-        for (auto v = t; v != s; v = parents[v]) {
-            auto u = parents[v];
-            flow[u][v] += path_flow;
-            flow[v][u] -= path_flow;
-            the_cost += path_flow * original_cost[u][v];
-            capacity[u][v] -= path_flow;
-            capacity[v][u] += path_flow;
-        }
 
-        // reduce costs
-        for (auto& node : graph) {
-            for (auto& edge : node) {
-                if (capacity[edge.source][edge.target] == 0) {
-                    continue;
-                }
-                cost[edge.source][edge.target] += distances[edge.source] - distances[edge.target];
+        for (auto v = t; v != s; v = parents[v].first) {
+            u = parents[v].first;
+            forward = parents[v].second;
+
+            if (forward) {
+                flow[u][v] += path_flow;
+            }
+            else {
+                flow[v][u] -= path_flow;
             }
         }
-        // for (int i = 0; i < n; i++) {
-        //     for (int j = 0; j < n; j++) {
-        //         if (capacity[i][j] == 0) {
-        //             continue;
-        //         }
-        //         cost[i][j] += distances[i] - distances[j];
-        //     }
-        // }
     }
-
+       
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            the_cost += cost[i][j] * flow[i][j];
+        }
+    }
     return std::make_pair(the_cost, the_flow);
 }
+
 }
 
 #endif

@@ -1,7 +1,15 @@
+// minspantree.cpp
+// Author: Dennis Malmgren
+// Finds the minimum spanning tree in a graph
 #include <bits/stdc++.h>
+
+
+// Helper variables to easily swap between test input (for debuggging) and Kattis.
 std::ifstream cin("in_minspantree.txt");
 //auto& cin = std::cin;
 
+/// @brief Helper class, represents an edge in a graph.
+/// Keeps track of the nodes it connects, and the weight.
 struct Edge {
     public:
         Edge(int source, int target, int weight) 
@@ -65,7 +73,9 @@ class DisjointSet {
 };
 
 
-
+// @brief TestCase class
+/// Gathers the necessary input to define a shortest path problem
+/// Uses an adjacency list representation of a graph.
 struct TestCase {
     TestCase(int n, int m) : n(n), m(m), adjacency(n) {
         
@@ -81,6 +91,9 @@ struct TestCase {
     std::vector<std::vector<Edge>> adjacency;
 };
 
+
+/// @brief Input reading helper method
+/// @return returns a complete test case by reading from stdin.
 TestCase process_input() 
 {
     int n, m;
@@ -102,6 +115,9 @@ TestCase process_input()
    return testCase;
 }
 
+/// @brief Prints the results of finding an MST.
+/// @param result If result is std::nullopt, the method writes "Impossible".
+/// Otherwise, the total weight of the MST and the used edges are printed.
 void print_result(std::optional<std::pair<int, std::vector<Edge>>>& result) 
 {
     if (!result.has_value()) {
@@ -116,7 +132,15 @@ void print_result(std::optional<std::pair<int, std::vector<Edge>>>& result)
     }
 }
 
-std::optional<std::pair<int, std::vector<Edge>>> mst(std::vector<std::vector<Edge>>& graph) {
+/// @brief Algorithm to calculate the minimum spanning tree. 
+/// Time complexity: O(E log E)
+/// @tparam T the type of values in the graph
+/// @param graph adjacency list representation of a graph.
+/// @return std::nullopt if there is no MST. Otherwise a pair, 
+/// where the first element is the total weight of the tree and the second
+/// element is the edges of the tree.
+std::optional<std::pair<int, std::vector<Edge>>> mst(
+    std::vector<std::vector<Edge>>& graph) {
     std::pair<int, std::vector<Edge>> result;
     DisjointSet disjointSet(graph.size());
     std::vector<Edge> all_edges;
@@ -152,6 +176,9 @@ std::optional<std::pair<int, std::vector<Edge>>> mst(std::vector<std::vector<Edg
     return result;
 }
 
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);

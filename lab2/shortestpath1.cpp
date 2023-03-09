@@ -1,15 +1,38 @@
-//distance/parent[] shortest_path(graph G, node start)
+
+// shortestpath1.cpp
+// Author: Dennis Malmgren
+// Finds the single source shortest paths in a directed graph
+// does not handle negative weights, and only works with
+// integer distances.
 
 #include <bits/stdc++.h>
+
+// Helper variables to easily swap between test input (for debuggging) and Kattis
 std::ifstream cin("in_shortestpath1.txt");
 //auto& cin = std::cin;
 
+/// @brief Class that contains information about edges
+/// in a graph. Keeps track of the cost (weight) to transition 
+/// the edge as well as the target node it connects to.
 struct Edge {
     public:
         int weight;
         int target;
 };
 
+/// @brief Class that contains information about nodes
+/// in a graph. Keeps track of distance estimates to the node.
+struct Node 
+{
+    public:
+        int n;
+        int dist;
+};
+
+// @brief TestCase class
+/// Gathers the necessary input to define a shortest path problem
+/// Uses an adjacency list representation of a graph.
+/// Nodes are numbered 0-(n-1)
 struct TestCase {
     TestCase(int n, int m, int q, int s) : n(n), m(m), q(q), s(s), adjacency(n), queries(q) {
         
@@ -23,6 +46,9 @@ struct TestCase {
     std::vector<std::vector<Edge>> adjacency;
 };
 
+
+/// @brief Input reading helper method
+/// @return returns a complete test case by reading from stdin.
 TestCase process_input() 
 {
     int n, m, q, s;
@@ -49,6 +75,10 @@ TestCase process_input()
     return testCase;
 }
 
+
+/// @brief Helper function to print the results. 
+/// Prints Impossible if the magic number of max_int is encountered,
+/// otherwise the actual result.
 void print_result(int result) 
 {
     if (result == std::numeric_limits<int>::max()) {
@@ -59,20 +89,24 @@ void print_result(int result)
     }
 }
 
-struct Node 
-{
-    public:
-        int n;
-        int dist;
-};
 
-std::pair<std::vector<int>, std::map<int, int>> shortest_path(std::vector<std::vector<Edge>> graph, int start)
+/// @brief Identifies the shortest paths from a source node 
+/// to each node in a graph using Djikstra's algorithm. 
+/// The function uses O((V+E)logV) time where V is the vertex count
+/// and E is the edge count.
+/// @param graph an adjacency list representation of a graph
+/// @param start the node to identify paths from
+/// @return A pair where the first element is the distances to each node identified
+/// by their position in the list, and the second element is the immediate parent of each
+/// node in the graph, when following the shortest path to that node.
+std::pair<std::vector<int>, std::map<int, int>> 
+shortest_path(std::vector<std::vector<Edge>> graph, int start)
 {
     const int MAX_DIST = std::numeric_limits<int>::max();
     std::vector<int> distances(graph.size(), MAX_DIST);
     std::map<int, int> parents;
 
-    auto comp = [](Node a, Node b ) { 
+    auto comp = [](const Node& a, const Node& b ) { 
         if (a.dist != b.dist) {
             return a.dist < b.dist; 
         }
@@ -81,7 +115,6 @@ std::pair<std::vector<int>, std::map<int, int>> shortest_path(std::vector<std::v
         }
     };
 
-    //std::priority_queue<Node, std::vector<Node>, decltype(comp)> unvisited(comp);
     std::set<Node, decltype(comp)> unvisited(comp);
 
     Node root;
@@ -114,7 +147,9 @@ std::pair<std::vector<int>, std::map<int, int>> shortest_path(std::vector<std::v
     return std::make_pair(distances, parents);
 }
 
-
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);

@@ -1,3 +1,9 @@
+// algo_lib.h
+// Author: Dennis Malmgren
+// Helper file with multiple useful
+// classes and methods for algorithmic problem solving.
+
+
 #ifndef __ALGO_LIB_H
 #define __ALGO_LIB_H
 #include <bits/stdc++.h>
@@ -5,6 +11,9 @@
 namespace algo
 {
 
+/// @brief Class that contains information about edges
+/// in a graph. Keeps track of the cost (weight) to transition 
+/// the edge as well as the source and target nodes it connects.
 template<typename T>
 struct BaseEdge
 {
@@ -26,10 +35,12 @@ struct BaseEdge
 using Edge = BaseEdge<int>;
 using DoubleEdge = BaseEdge<double>;
 
+/// @brief Helper class to represent nodes in a graph.
 struct Node 
 {
     Node() = default;
     int n;
+    int weight;
 };
 
 template<typename T>
@@ -40,6 +51,14 @@ using double_adjacency_graph = base_adjacency_graph<double>;
 
 const int MAX_DIST = std::numeric_limits<int>::max();
 
+/// @brief Depth-first search algorithm that only allows
+/// traversal of edges with a positive capacity. Complexity O(V+E).
+/// @param graph an adjacency list representation of a graph
+/// @param parents pre-allocated vector to store parent indices in.
+/// @param capacity the capacity for each node-node pair.
+/// @param start the node to identify paths from
+/// @param stop the target to reach, after which the algorithm ends.
+/// @return true if the stop node could be reached.
 bool dfs_flow(const adjacency_graph& graph, 
                 std::vector<int>& parents,
                 std::vector<std::vector<int>>& capacity,
@@ -70,6 +89,15 @@ bool dfs_flow(const adjacency_graph& graph,
 
 }
 
+/// @brief Breadth-first search algorithm that only allows
+/// traversal of edges with a positive capacity. Complexity O(E).
+/// @param graph an adjacency list representation of a graph
+/// @param parents pre-allocated vector to store parent indices in.
+/// @param capacity the capacity for each node-node pair.
+/// @param visited pre-allocated vector to mark visited nodes in.
+/// @param start the node to identify paths from
+/// @param stop the target to reach, after which the algorithm ends.
+/// @return true if the stop node could be reached.
 bool bfs_flow(const adjacency_graph& graph, 
                 std::vector<int>& parents,
                 std::vector<std::vector<int>>& capacity,
@@ -101,6 +129,15 @@ bool bfs_flow(const adjacency_graph& graph,
 
 }
 
+/// @brief Algorithm to solve the max-flow problem. Implements the
+/// Ford-Fulkerson method with breadth-first search. 
+/// Complexity O(EF) where F is the maximum flow of the network.
+/// @param g an adjacency list representation of a graph
+/// @param capacity the capacity for each node-node pair.
+/// @param flow the current flow between each node-node pair.
+/// @param s Source node.
+/// @param t Sink node.
+/// @return The maximum flow.
 int max_flow(adjacency_graph& g, 
                 std::vector<std::vector<int>>& capacity, 
                 std::vector<std::vector<int>>& flow, 
@@ -129,6 +166,9 @@ int max_flow(adjacency_graph& g,
     return the_flow;
 }
 
+
+/// @brief Class that contains information about nodes
+/// in a graph. Keeps track of distance estimates to the node.
 template<typename T>
 struct DistNode
 {
@@ -138,15 +178,26 @@ struct DistNode
     T dist;
 };
 
+
+/// @brief Identifies the shortest paths from a source node 
+/// to each node in a graph using Djikstra's algorithm. 
+/// The function uses O((V+E)logV) time where V is the vertex count
+/// and E is the edge count.
+/// @param graph an adjacency list representation of a graph
+/// @param start the node to identify paths from
+/// @return A pair where the first element is the distances to each node identified
+/// by their position in the list, and the second element is the immediate parent of each
+/// node in the graph, when following the shortest path to that node.
 template<typename T>
-std::pair<std::vector<T>, std::map<int, int>> shortest_path(base_adjacency_graph<T>& graph, int start)
+std::pair<std::vector<T>, std::map<int, int>> 
+shortest_path(base_adjacency_graph<T>& graph, int start)
 {
     const T MAX_DIST = std::numeric_limits<T>::max();
     int n = graph.size();
     std::vector<T> distances(n, MAX_DIST);
     std::map<int, int> parents;
 
-    auto comp = [](DistNode<T> a, DistNode<T> b ) { 
+    auto comp = [](const DistNode<T>& a, const DistNode<T>& b ) { 
         if (a.dist != b.dist) {
             return a.dist < b.dist; 
         }
@@ -155,7 +206,6 @@ std::pair<std::vector<T>, std::map<int, int>> shortest_path(base_adjacency_graph
         }
     };
 
-    //std::priority_queue<Node, std::vector<Node>, decltype(comp)> unvisited(comp);
     std::set<DistNode<T>, decltype(comp)> unvisited(comp);
 
     DistNode<T> root;
@@ -190,7 +240,24 @@ std::pair<std::vector<T>, std::map<int, int>> shortest_path(base_adjacency_graph
 
 using ll = long long;
 
-
+/// @brief Calculates the shortest path 
+/// while optimizing for cost. Only traverses edges where capacity is 
+/// positive, and uses forward and backward edges in its search.
+/// Assumes costs are positive.
+/// Complexity O((V+E)log V) as it uses Djikstra's algorithm.
+/// @param graph an adjacency list representation of a graph
+/// @param reversed same as graph but with edges reversed.
+/// @param start the node to identify paths from
+/// @param potentials the current best distances to each node.
+/// @param capacity the capacity for each node-node pair.
+/// @param flow the current flow between each node-node pair.
+/// @param cost the cost for each edge in the graph.
+/// @param parents pre-allocated vector in which to mark
+/// the parents in a shortest path tree.
+/// @param visited pre-allocated vector in which to mark 
+/// visited nodes during search.
+/// @param distances pre-allocated vector in which to save 
+/// shortest distances encountered during search.
 void shortest_path_flow(adjacency_graph& graph, 
         adjacency_graph& reversed,  
         int start,
@@ -199,13 +266,14 @@ void shortest_path_flow(adjacency_graph& graph,
         std::vector<std::vector<ll>>& flow,
         std::vector<std::vector<ll>>& cost,
         std::vector<std::pair<int, bool>>& parents,
+        std::vector<bool>& visited,
         std::vector<ll>& distances)
 {
     const ll MAX_DIST = std::numeric_limits<ll>::max() / 2;
     std::fill(distances.begin(), distances.end(), MAX_DIST);
+    std::fill(visited.begin(), visited.end(), false);
     int n = graph.size();
-    std::vector<bool> visited(n, false);
-    auto comp = [](DistNode<ll> a, DistNode<ll> b ) { 
+    auto comp = [](const DistNode<ll>& a, const DistNode<ll>& b ) { 
         if (a.dist != b.dist) {
             return a.dist < b.dist;     
         }
@@ -214,16 +282,15 @@ void shortest_path_flow(adjacency_graph& graph,
         }
     };
 
-    //std::priority_queue<Node, std::vector<Node>, decltype(comp)> unvisited(comp);
     std::set<DistNode<ll>, decltype(comp)> unvisited(comp);
     unvisited.insert(DistNode<ll>(start, 0));
     distances[start] = 0;
     while (unvisited.size() > 0) {
-        auto node = *unvisited.begin();
+        auto node = unvisited.begin()->n;
         unvisited.erase(unvisited.begin());
-        visited[node.n] = true;
-        int node_dist = distances[node.n] + potentials[node.n];
-        for (auto edge: graph[node.n]) {  
+        visited[node] = true;
+        int node_dist = distances[node] + potentials[node];
+        for (auto& edge: graph[node]) {  
             if (!visited[edge.target]) {
                 auto target_dist = node_dist - potentials[edge.target] + cost[edge.source][edge.target];
                 if (capacity[edge.source][edge.target] - flow[edge.source][edge.target] > 0 && target_dist < distances[edge.target]) {
@@ -237,10 +304,10 @@ void shortest_path_flow(adjacency_graph& graph,
             }
         }
 
-        for (auto edge: reversed[node.n]) {  
+        for (auto& edge: reversed[node]) {  
             if (!visited[edge.target]) {
-                auto target_dist = node_dist - potentials[edge.target] - cost[edge.source][edge.target];
-                if (flow[edge.source][edge.target] > 0 && target_dist < distances[edge.target]) {
+                auto target_dist = node_dist - potentials[edge.target] - cost[edge.target][edge.source];
+                if (flow[edge.target][edge.source] > 0 && target_dist < distances[edge.target]) {
                     if (distances[edge.target] != MAX_DIST) {
                         unvisited.erase(DistNode<ll>(edge.target, distances[edge.target]));
                     }
@@ -307,9 +374,16 @@ class DisjointSet {
         std::vector<int> rank;
 };
 
-
+/// @brief Algorithm to calculate the minimum spanning tree. 
+/// Time complexity: O(E log E)
+/// @tparam T the type of values in the graph
+/// @param graph adjacency list representation of a graph.
+/// @return std::nullopt if there is no MST. Otherwise a pair, 
+/// where the first element is the total weight of the tree and the second
+/// element is the edges of the tree.
 template<typename T>
-std::optional<std::pair<T, std::vector<BaseEdge<T>>>> mst(base_adjacency_graph<T>& graph) {
+std::optional<std::pair<T, std::vector<BaseEdge<T>>>> 
+mst(base_adjacency_graph<T>& graph) {
     std::pair<T, std::vector<BaseEdge<T>>> result;
     DisjointSet disjointSet(graph.size());
     std::vector<BaseEdge<T>> all_edges;
@@ -345,6 +419,11 @@ std::optional<std::pair<T, std::vector<BaseEdge<T>>>> mst(base_adjacency_graph<T
     return result;
 }
 
+/// @brief  Helper function that returns a vector of indices ordered
+/// according to the values of the input vector. Time complexity: O(n log n)
+/// @tparam T the type of elements in the vector.
+/// @param array the vector of elements the indices should be sorted according to.
+/// @return a vector of indices in sorted order.
 template<typename T>
 std::vector<size_t> argsort(const std::vector<T> &array) {
     std::vector<size_t> indices(array.size());
@@ -358,8 +437,19 @@ std::vector<size_t> argsort(const std::vector<T> &array) {
     return indices;
 }
 
-
-void get_scc(int i, std::set<int>& scc, int scc_id, std::map<int, int>& scc_ids, std::vector<bool>& discovered,
+/// @brief Algorithm to identify all nodes in a strongly connected component in a graph,
+/// starting from a specific node. O(E).
+/// @param i The node to investigate.
+/// @param scc The resulting set of nodes in the component.
+/// @param scc_id the scc id allocated to the current scc.
+/// @param scc_ids the map from node id to scc id.
+/// @param discovered mark nodes as discovered during search.
+/// @param adjacency adjacency list representation of a graph.
+void get_scc(int i, 
+            std::set<int>& scc, 
+            int scc_id, 
+            std::map<int, int>& scc_ids, 
+            std::vector<bool>& discovered,
             adjacency_graph& adjacency) 
 {
     discovered[i] = true;
@@ -372,61 +462,16 @@ void get_scc(int i, std::set<int>& scc, int scc_id, std::map<int, int>& scc_ids,
     }
 }
 
-template<typename T>
-void flow_shortest_path_negative_weights(int n, 
-                                    std::vector<BaseEdge<T>>& edges, 
-                                    std::vector<std::vector<T>>& capacity,
-                                    std::vector<std::vector<T>>& cost,
-                                    std::vector<T>& distances,
-                                    std::vector<T>& parents,
-                                    int start, 
-                                    bool ignore_cycles = false)
-{
-    const T MAX_DIST = std::numeric_limits<T>::max();
-    const T MIN_DIST = std::numeric_limits<T>::min();
-    
-    distances[start] = 0;
-
-    for (int i = 0; i < n - 1; i++) {
-        for (auto& edge: edges) {
-            if (capacity[edge.source][edge.target] == 0) {
-                continue;
-            }
-            if (distances[edge.source] == MAX_DIST) {
-                continue;
-            }
-            auto edge_weight = capacity[edge.source][edge.target] * cost[edge.source][edge.target];
-
-            if (distances[edge.source] + edge_weight < distances[edge.target]) {
-                distances[edge.target] = distances[edge.source] + edge_weight;
-                parents[edge.target] = edge.source;
-            }
-        }
-    }
-    
-    // Run it again..
-    if (!ignore_cycles) {
-        for (int i = 0; i < n - 1; i++) {
-            for (auto& edge: edges) {
-                if (capacity[edge.source][edge.target] == 0) {
-                    continue;
-                }
-                if (distances[edge.source] < MAX_DIST) {
-                    auto edge_weight = capacity[edge.source][edge.target] * cost[edge.source][edge.target];
-                    if (distances[edge.source] == MIN_DIST) {
-                        distances[edge.target] = MIN_DIST;
-                        parents[edge.target] = edge.source;
-                    }
-                    else if (distances[edge.source] + edge_weight < distances[edge.target]) {
-                        distances[edge.target] = MIN_DIST;
-                        parents[edge.target] = edge.source;
-                    }
-                }
-            }
-        }
-    }
-}
-
+/// @brief Identifies the shortest paths in a graph using the Bellman-Ford method.
+/// It can handle negative weights and negative cycles. Time complexity: O(VE).
+/// @tparam T Type element in the graph.
+/// @param n The number of nodes.
+/// @param edges Edge list representation of the graph.
+/// @param distances Preallocated list of distances to each node.
+/// @param parents Preallocated list to save the parents of each node
+/// when travelling along the shortest paths.
+/// @param start Start node to find paths from
+/// @param ignore_cycles True if negative cycles should be ignored.
 template<typename T>
 void shortest_path_negative_weights(int n, 
                                     std::vector<BaseEdge<T>>& edges, 
@@ -471,6 +516,18 @@ void shortest_path_negative_weights(int n,
     }
 }
 
+/// @brief Solves the min-cost-max-flow problem using the Successive Shortest Paths
+/// method with potentials. Time complexity: O(V E F log V) where F is the maximum flow.
+/// @param n The number of nodes.
+/// @param graph Adjacency list representation of the graph.
+/// @param reversed The same graph but with edges reversed.
+/// @param capacity The capacity for each node-node pair.
+/// @param flow The current flow between each node-node pair.
+/// @param cost The unit cost for flow between each node-node pair.
+/// @param s The source node.
+/// @param t The sink node.
+/// @return A pair where the first element is the cost and the second element is the
+/// flow.
 std::pair<ll, ll> min_cost_max_flow(int n, 
                 adjacency_graph& graph, 
                 adjacency_graph& reversed, 
@@ -485,11 +542,12 @@ std::pair<ll, ll> min_cost_max_flow(int n,
     std::vector<std::pair<int, bool>> parents(n);
     std::vector<ll> distances(n);
     std::vector<ll> potentials(n, 0);
-    
-    while (true) {
-        shortest_path_flow(graph, reversed, s, potentials, capacity, flow, cost, parents, distances); 
+    std::vector<bool> visited(n, false);
 
-        if (distances[t] == MAX_DIST) {
+    while (true) {
+        shortest_path_flow(graph, reversed, s, potentials, capacity, flow, cost, parents, visited, distances); 
+
+        if (distances[t] == MAX_DIST || !visited[t]) {
             break;
         }
 

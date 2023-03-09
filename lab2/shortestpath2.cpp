@@ -1,11 +1,29 @@
-//distance/parent[] shortest_path(graph G, node start)
+
+// shortestpath2.cpp
+// Author: Dennis Malmgren
+// Finds the single source shortest paths in a directed graph
+// while handling the fact that edges are only available when
+// so specified in a time table. Only works with
+// integer distances.
+
 #include "algo_lib.h"
 #include <bits/stdc++.h>
+
+// Helper variables to easily swap between test input (for debuggging) and Kattis
 std::ifstream cin("in_shortestpath2.txt");
 //auto& cin = std::cin;
+
+
 using namespace algo;
 using ll = long long;
 
+
+/// @brief Class that contains information about edges
+/// in a graph. Keeps track of the cost (weight) to transition 
+/// the edge as well as the target node it connects to.
+/// The class also keeps track of when it is first available (t0)
+/// and at what interval (p). p=0 indicates that the edge is only
+/// available at t0.
 struct DelayedEdge 
 {
     DelayedEdge() = default;
@@ -23,6 +41,12 @@ struct DelayedEdge
 
 using delayed_graph = std::vector<std::vector<DelayedEdge>>;
 
+
+// @brief TestCase class
+/// Gathers the necessary input to define a shortest path problem
+/// with time tables.
+/// Uses an adjacency list representation of a graph.
+/// Nodes are numbered 0-(n-1)
 struct TestCase {
     TestCase(int n, int m, int q, int s) 
     : n(n), m(m), q(q), s(s),
@@ -42,6 +66,9 @@ struct TestCase {
     }
 };
 
+
+/// @brief Input reading helper method
+/// @return returns a complete test case by reading from stdin.
 TestCase process_input() 
 {
     int n, m, q, s;
@@ -67,6 +94,9 @@ TestCase process_input()
     return testCase;
 }
 
+/// @brief Helper function to print the results. 
+/// Prints Impossible if the magic number of max_int is encountered,
+/// otherwise the actual distances.
 void print_result(std::vector<ll>& results) 
 {
     for (auto result : results) {
@@ -79,6 +109,13 @@ void print_result(std::vector<ll>& results)
     }
 }
 
+/// @brief Calculates, given an arrival time, how long
+/// the wait time is before an edge can be traversed.
+/// @param arrival_time The time at which there is a need to traverse the edge.
+/// @param t0 The earliest time the edge is available.
+/// @param p The interval at which the edge is available.
+/// @return How long the wait time is, or -1 if the edge is never available
+/// after the arrival time.
 ll calculate_delay(int arrival_time, int t0, int p) 
 {
     ll edge_delay = 0;
@@ -95,6 +132,15 @@ ll calculate_delay(int arrival_time, int t0, int p)
     return edge_delay;
 }
 
+/// @brief Calculates the actual time it takes to traverse an edge,
+/// including wait time.
+/// @param arrival_time The time at which there is a need to traverse the edge.
+/// @param t0 The earliest time the edge is available.
+/// @param p The interval at which the edge is available.
+/// @param edge_weight The time it takes to traverse the edge without wait 
+/// times included.
+/// @return The actual time it takes to traverse an edge including wait time, or -1 
+/// if the edge is never available after the arrival time.
 ll calculate_edge_dist(int arrival_time, int t0, int p, int edge_weight) 
 {
     ll edge_delay = calculate_delay(arrival_time, t0, p);
@@ -104,6 +150,17 @@ ll calculate_edge_dist(int arrival_time, int t0, int p, int edge_weight)
     return edge_delay + edge_weight;
 }
 
+
+/// @brief Identifies the shortest paths from a source node 
+/// to each node in a graph using Djikstra's algorithm and 
+/// dynamically calculates the edge distances using a time table specification.
+/// The function uses O((V+E)logV) time where V is the vertex count
+/// and E is the edge count.
+/// @param graph an adjacency list representation of a graph
+/// @param start the node to identify paths from
+/// @return A pair where the first element is the distances to each node identified
+/// by their position in the list, and the second element is the immediate parent of each
+/// node in the graph, when following the shortest path to that node.
 std::pair<std::vector<ll>, std::map<int, int>> shortest_path_with_timetable(
     delayed_graph& graph, int start)
 {
@@ -122,7 +179,6 @@ std::pair<std::vector<ll>, std::map<int, int>> shortest_path_with_timetable(
         }
     };
 
-    //std::priority_queue<DistNode<ll>, std::vector<DistNode<ll>>, decltype(comp)> unvisited(comp);
     std::set<DistNode<ll>, decltype(comp)> unvisited(comp);
 
     unvisited.insert(DistNode<ll>(start, 0));
@@ -143,8 +199,6 @@ std::pair<std::vector<ll>, std::map<int, int>> shortest_path_with_timetable(
             
             ll next_distance = distances[node.n] + edge_dist;
             if (next_distance < distances[edge.target]) {
-                //unvisited.erase(DistNode<ll>(edge.target, distances[edge.target]));
-
                 distances[edge.target] = next_distance;
                 unvisited.insert(DistNode<ll>(edge.target, distances[edge.target]));
                 parents[edge.target] = node.n;
@@ -155,6 +209,13 @@ std::pair<std::vector<ll>, std::map<int, int>> shortest_path_with_timetable(
     return std::make_pair(distances, parents);
 }
 
+/// @brief Wrapper method that handles identifying shortest paths and then querying
+/// the result for specific target nodes.
+/// @param graph an adjacency list representation of a graph
+/// @param start the node to identify paths from
+/// @param queries the nodes for which there is a need to identify
+/// the travel times to.
+/// @return a list of distances, one for each query.
 std::vector<ll> solve(delayed_graph& graph, int start,
     std::vector<int>& queries) {
 
@@ -166,6 +227,10 @@ std::vector<ll> solve(delayed_graph& graph, int start,
     return dists;
 }
 
+
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);

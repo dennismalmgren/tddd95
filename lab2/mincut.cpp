@@ -1,13 +1,20 @@
-//distance/parent[] shortest_path(graph G, node start)
+// mincut.cpp
+// Author: Dennis Malmgren
+// Finds the minimum cut in a graph, i.e., the
+// minimal weight edges that need to be removed to separate
+// source from sink.
 #include "algo_lib.h"
 #include <bits/stdc++.h>
 
+// Helper variables to easily swap between test input (for debuggging) and Kattis.
 std::ifstream cin("in_mincut.txt");
 //auto& cin = std::cin;
 
 using namespace algo;
 
-
+// @brief TestCase class
+/// Gathers the necessary input to define a shortest path problem
+/// Uses an adjacency list representation of a graph.
 struct TestCase {
     TestCase(int n, int m, int s, int t) 
     : n(n), m(m), s(s), t(t),
@@ -27,6 +34,9 @@ struct TestCase {
 
 };
 
+
+/// @brief Input reading helper method
+/// @return returns a complete test case by reading from stdin.
 TestCase process_input() 
 {
     int n, m, s, t;
@@ -46,6 +56,10 @@ TestCase process_input()
     return testCase;
 }
 
+/// @brief Helper function to print the result. Prints the number of vertices
+/// and their numbers.
+/// @param results the vertices that together with the source node
+/// are separated from the sink.
 void print_result(std::vector<int>& results) 
 {
     std::cout << results.size() << "\n";
@@ -54,7 +68,17 @@ void print_result(std::vector<int>& results)
     }
 }
 
-
+/// @brief Minimum cut algorithm. Uses the max flow algorithm and 
+/// then breadth-first serach in order to identify the reachable 
+/// nodes when flow has been saturated. 
+/// Time complexity: O(EF) where F is the maximum flow of the network.
+/// @param graph The graph to investigate.
+/// @param capacity Capacity between node-node pairs.
+/// @param flow Current flow between node-node pairs.
+/// @param start Source node.
+/// @param end Sink node.
+/// @return A list of vertices that together with the source node
+/// are separated from the sink node by a minimum cut.
 std::vector<int> mincut(adjacency_graph& graph, 
                         std::vector<std::vector<int>>& capacity,
                         std::vector<std::vector<int>>& flow,
@@ -75,6 +99,9 @@ std::vector<int> mincut(adjacency_graph& graph,
     return results;
 }
 
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);

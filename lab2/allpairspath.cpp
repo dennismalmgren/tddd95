@@ -1,13 +1,19 @@
-//distance/parent[] shortest_path(graph G, node start)
+// allpairspath.cpp
+// Author: Dennis Malmgren
+// Finds the all pairs shortest paths in a directed graph.
+// Handles negative and positive integer weights.
 #include "algo_lib.h"
 #include <bits/stdc++.h>
 
+// Helper variables to easily swap between test input (for debuggging) and Kattis.
 std::ifstream cin("in_allpairspath.txt");
 //auto& cin = std::cin;
 
 using namespace algo;
 
-
+// @brief TestCase class
+/// Gathers the necessary input to define a shortest path problem
+/// Uses an adjacency list representation of a graph.
 struct TestCase {
     TestCase(int n, int m, int q) 
     : n(n), m(m), q(q),
@@ -22,7 +28,6 @@ struct TestCase {
     int q;
     adjacency_graph adjacency;
     std::vector<std::pair<int, int>> queries;
-    //std::vector<std::vector<int>> distances;
 
     bool is_end() 
     {
@@ -30,6 +35,9 @@ struct TestCase {
     }
 };
 
+
+/// @brief Input reading helper method
+/// @return returns a complete test case by reading from stdin.
 TestCase process_input() 
 {
     int n, m, q, s;
@@ -56,6 +64,10 @@ TestCase process_input()
     return testCase;
 }
 
+/// @brief Helper function to print the results. 
+/// Prints Impossible if the magic number of max_int is encountered,
+/// prints -Infinity if the magic number of min_int is encountered,
+/// otherwise the actual result.
 void print_result(std::vector<int>& results) 
 {
     const int MAX_DIST = std::numeric_limits<int>::max();
@@ -75,6 +87,10 @@ void print_result(std::vector<int>& results)
     std::cout << "\n";
 }
 
+/// @brief Identifies the shortest paths in a graph using the Floyd-Warshall method.
+/// It can handle negative weights and negative cycles. Time complexity: O(V^3).
+/// @tparam T Type element in the graph.
+/// @param graph Adjacency list representation of the graph.
 template<typename T>
 std::vector<std::vector<T>> shortest_paths_negative_weights(base_adjacency_graph<T>& graph)
 {
@@ -83,7 +99,6 @@ std::vector<std::vector<T>> shortest_paths_negative_weights(base_adjacency_graph
     
     int n = graph.size();
 
-    // TODO: Maybe move this to test case read.
     std::vector<std::vector<T>> distances(n, std::vector<int>(n, MAX_DIST));
     for (int i = 0; i < n; i++) {
         distances[i][i] = 0;
@@ -127,7 +142,12 @@ std::vector<std::vector<T>> shortest_paths_negative_weights(base_adjacency_graph
     return distances;
 }
 
-
+/// @brief Wrapper method that handles identifying shortest paths and then querying
+/// the result for specific target nodes.
+/// @param graph an adjacency list representation of a graph
+/// @param queries the nodes pairs for which there is a need to identify
+/// the travel times between.
+/// @return a list of distances, one for each query.
 std::vector<int> solve(adjacency_graph& graph,
     std::vector<std::pair<int, int>>& queries) {
 
@@ -139,6 +159,9 @@ std::vector<int> solve(adjacency_graph& graph,
     return dists;
 }
 
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);

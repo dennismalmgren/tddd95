@@ -1,12 +1,21 @@
+// maxflow.cpp
+// Author: Dennis Malmgren
+// Finds the maximum flow in a graph with a source
+// and a sink.
+
 #include "algo_lib.h"
 
 #include <bits/stdc++.h>
 using namespace algo;
 
+// Helper variables to easily swap between test input (for debuggging) and Kattis.
 std::ifstream cin("in_maxflow.txt");
 //auto& cin = std::cin;
 
 
+// @brief TestCase class
+/// Gathers the necessary input to define a shortest path problem
+/// Uses an adjacency list representation of a graph.
 struct TestCase {
     TestCase(int n, int m, int s, int t) : n(n), m(m), s(s), t(t), g(n), 
                                             capacity(n, std::vector<int>(n, 0)), 
@@ -22,6 +31,8 @@ struct TestCase {
     std::vector<std::vector<int>> capacity;
 };
 
+/// @brief Reads the graph edges and capacity from input.
+/// @param testCase The pre-allocated vectors to fill with edges.
 void process_testcase(TestCase& testCase) 
 {
     int u, v, c;
@@ -35,6 +46,11 @@ void process_testcase(TestCase& testCase)
     }
 }
 
+/// @brief Helper function to print the results.
+/// @param the_graph The graph that was investigated
+/// @param t The target node
+/// @param flow The total flow
+/// @param the_flow The flow between each node-node pair.
 void print_result(adjacency_graph& the_graph, int t, int flow, std::vector<std::vector<int>>& the_flow) 
 {
     // Determine max flow.
@@ -57,7 +73,9 @@ void print_result(adjacency_graph& the_graph, int t, int flow, std::vector<std::
 }
 
 
-
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);

@@ -1,13 +1,19 @@
-//distance/parent[] shortest_path(graph G, node start)
-//#include "algo_lib.h"
+// eulerianpath.cpp
+// Author: Dennis Malmgren
+// Finds the eulerian path in a directed graph
+// if there is one, or identifies if there is not.
 #include <bits/stdc++.h>
 
+// Helper variables to easily swap between test input (for debuggging) and Kattis.
 std::ifstream cin("in_eulerianpath.txt");
 //auto& cin = std::cin;
 
 //using namespace algo;
 
-
+// @brief TestCase class
+/// Gathers the necessary input to define a shortest path problem
+/// Uses an adjacency list representation of a graph with ingoing edges instead
+/// of outgoing.
 struct TestCase {
     TestCase(int n, int m) 
     : n(n), m(m),
@@ -28,6 +34,8 @@ struct TestCase {
     }
 };
 
+/// @brief Reads the graph and pre-calculates vertex degrees.
+/// @return A complete specification of a test case.
 TestCase process_input() 
 {
     int n, m;
@@ -49,6 +57,10 @@ TestCase process_input()
     return testCase;
 }
 
+/// @brief Prints the path as traversed vertices, or Impossible if there is
+/// no path.
+/// @param result A vector of traversed vertices in an Eulerian path order, 
+/// or empty if there is no path.
 void print_result(std::vector<int>& result) 
 {
     if (result.size() == 0) {
@@ -65,6 +77,13 @@ void print_result(std::vector<int>& result)
     }
 }
 
+/// @brief Solves the Eulerian path by backtracking dfs in O(E) time.
+/// @param ingoing Adjacency list graph with ingoing vertices. 
+/// @param m The total number of edges.
+/// @param in_degrees The in-degree of each vertex.
+/// @param out_degrees The out-degree of each vertex.
+/// @return A list of vertices that can be traversed in an Eulerian path,
+/// or empty if there is no such path.
 std::vector<int> solve(std::vector<std::vector<int>>& ingoing, 
                         int m,
                         std::vector<int>& in_degrees, 
@@ -135,6 +154,9 @@ std::vector<int> solve(std::vector<std::vector<int>>& ingoing,
     return result;
 }
 
+/// @brief Main method. Handles input reading, calling workhorse methods and 
+/// result printing methods.
+/// @return 0
 int main()
 {
     std::ios_base::sync_with_stdio(false);
